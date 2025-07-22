@@ -1,47 +1,4 @@
-# =====================
-#  Node.js + Express
-# =====================
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.env
-*.env.local
 dist/
-build/
-coverage/
-
-# SQLite
-*.sqlite
-*.sqlite3
-*.db
-*.db-wal
-*.db-shm
+.env
 bar.db
-
-# Logs
-logs
-*.log
-log/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Vite
-.vite
-.vite-cache/
-.cache/
-*.local
-
-# Docker
-docker-compose.override.yml
-*.pid
-
-# Editor config
-.vscode/
-.idea/
-*.swp
-
-# Production
-frontend/dist/

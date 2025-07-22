@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
 const port = 3001;
@@ -283,6 +284,12 @@ app.delete('/orders', (req, res) => {
   });
 });
 
+// Servir le frontend compilé
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.listen(port, () => {
   console.log(`Backend running on http://localhost:${port}`);
