@@ -8,6 +8,7 @@ WORKDIR /app
 COPY backend/ ./backend
 
 # Copier uniquement le frontend déjà compilé
+RUN cd frontend && npm install --omit=dev && npm run build
 COPY frontend/dist/ ./backend/public/
 
 # Copier les fichiers de config backend (ex: package.json à la racine ou dans backend)
