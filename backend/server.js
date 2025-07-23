@@ -287,10 +287,6 @@ app.delete('/orders', (req, res) => {
 // Servir le frontend compilé
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 app.listen(port, () => {
   console.log(`Backend running on http://localhost:${port}`);
 });

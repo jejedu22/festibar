@@ -17,7 +17,7 @@ COPY backend/package*.json ./backend/
 RUN cd backend && npm install --omit=dev
 
 # Exposer le port du serveur Express
-EXPOSE 3000
+EXPOSE 3001
 
 # Lancer le backend
 CMD ["node", "backend/server.js"]
