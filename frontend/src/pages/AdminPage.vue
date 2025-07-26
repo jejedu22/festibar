@@ -33,7 +33,9 @@
         <span>Disponible</span>
       </label>
 
-      <button class="w-full bg-green-500 text-white p-2 rounded">💾 Enregistrer</button>
+      <button class="w-full bg-green-500 text-white p-2 rounded">
+        {{ form.id ? '💾 Enregistré' : '➕ Ajouter' }}
+      </button>
       <button
         v-if="form.id"
         @click="reset"
@@ -43,7 +45,7 @@
         ✖️ Annuler
       </button>
     </form>
-    
+    <div class="mt-8">
       <div
         v-for="product in products"
         :key="product.id"
@@ -51,15 +53,16 @@
         :class="{ 'opacity-50 line-through': product.available === 0 }"
       >
 
-      <div>
-        <strong>{{ product.name }}</strong> - €{{ product.price.toFixed(2) }}
-        <span class="italic text-gray-600" v-if="product.category_name">
-          ({{ product.category_name }})
-        </span>
-      </div>
-      <div class="space-x-2">
-        <button @click="edit(product)" class="bg-yellow-300 px-2 rounded">🖊️</button>
-        <button @click="del(product.id)" class="bg-red-300 px-2 rounded">🗑️</button>
+        <div>
+          <strong>{{ product.name }}</strong> - €{{ product.price.toFixed(2) }}
+          <span class="italic text-gray-600" v-if="product.category_name">
+            ({{ product.category_name }})
+          </span>
+        </div>
+        <div class="space-x-2">
+          <button @click="edit(product)" class="bg-yellow-300 px-2 rounded">🖊️</button>
+          <button @click="del(product.id)" class="bg-red-300 px-2 rounded">🗑️</button>
+        </div>
       </div>
     </div>
     <button
