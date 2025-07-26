@@ -20,12 +20,16 @@
           v-for="product in category.products"
           :key="product.id"
           class="mb-1 border p-2 min-h-20 rounded-xl shadow flex items-center justify-between"
+          :class="{ 'opacity-50 pointer-events-none': !product.available }"
         >
           <div>
-            <div class="font-medium">{{ product.name }}</div>
-            <div class="text-sm text-gray-600">€{{ product.price.toFixed(2) }}</div>
+            <div class="font-medium">
+              {{ product.name }}
+              <span v-if="!product.available" class="text-sm text-red-500 ml-2">[Y'a plus, c'est fini !]</span>
+            </div>
+            <div v-if="product.available" class="text-sm text-gray-600">€{{ product.price.toFixed(2) }}</div>
           </div>
-          <div class="flex items-center gap-1">
+          <div v-if="product.available" class="flex items-center gap-1">
             <!-- Bouton "-" -->
             <button
               @click="changeQuantity(product.id, -1)"

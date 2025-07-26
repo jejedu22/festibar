@@ -45,31 +45,38 @@ db.serialize(() => {
     name TEXT NOT NULL UNIQUE
   )`);
 
-  // Vérification colonne category_id dans products avant ajout
+  // Vérification colonne category_id et available dans products avant ajout
   db.all(`PRAGMA table_info(products)`, (err, columns) => {
     if (err) {
       console.error('Erreur récupération colonnes produits:', err);
       return;
     }
-
+  
     const categoryColumnExists = columns.some(col => col.name === 'category_id');
+    const availableColumnExists = columns.some(col => col.name === 'available');
+  
     if (!categoryColumnExists) {
-      db.run(`ALTER TABLE products ADD COLUMN category_id INTEGER`, (err) => {
-        if (err) console.error('Erreur ajout colonne category_id:', err);
-        else console.log('Colonne category_id ajoutée avec succès.');
+      db.run(`ALTER TABLE products ADD COLUMN category_id INTEGER`);
+    }
+  
+    if (!availableColumnExists) {
+      db.run(`ALTER TABLE products ADD COLUMN available INTEGER DEFAULT 1`, (err) => {
+        if (err) console.error('Erreur ajout colonne available:', err);
+        else console.log('Colonne available ajoutée avec succès.');
       });
     } else {
-      console.log('Colonne category_id déjà présente, pas d\'ajout.');
+      console.log('Colonne available déjà présente.');
     }
   });
 });
+
 
 
 // --- Routes ---
 
 app.get('/api/products', (req, res) => {
   const query = `
-    SELECT p.id, p.name, p.price, p.category_id, c.name as category_name
+    SELECT p.id, p.name, p.price, p.category_id, p.available, c.name as category_name
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
     ORDER BY c.name, p.name
@@ -80,18 +87,16 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-
 app.post('/api/products', (req, res) => {
-  const { name, price, category_id } = req.body;
-  if (!name || price === undefined) {
-    return res.status(400).json({ error: 'Name and price required' });
-  }
-  db.run('INSERT INTO products (name, price, category_id) VALUES (?, ?, ?)', [name, price, category_id || null], function (err) {
+  const { name, price, category_id, available } = req.body;
+  db.run(
+  'INSERT INTO products (name, price, category_id, available) VALUES (?, ?, ?, ?)',
+  [name, price, category_id || null, available ? 1 : 0],
+  function (err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID, name, price, category_id });
+    res.json({ id: this.lastID, name, price, category_id, available });
   });
 });
-
 
 app.delete('/api/products/:id', (req, res) => {
   db.run('DELETE FROM products WHERE id = ?', [req.params.id], function (err) {
@@ -101,11 +106,15 @@ app.delete('/api/products/:id', (req, res) => {
 });
 
 app.put('/api/products/:id', (req, res) => {
-  const { name, price } = req.body;
-  db.run('UPDATE products SET name = ?, price = ? WHERE id = ?', [name, price, req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ updated: this.changes });
-  });
+  const { name, price, category_id, available } = req.body;
+  db.run(
+    'UPDATE products SET name = ?, price = ?, category_id = ?, available = ? WHERE id = ?',
+    [name, price, category_id || null, available ? 1 : 0, req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ updated: this.changes });
+    }
+  );
 });
 
 // GET /categories

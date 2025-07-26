@@ -1,26 +1,18 @@
 <template>
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h1>
-
-    <div
-      v-for="product in products"
-      :key="product.id"
-      class="flex justify-between items-center border p-2 mb-2 rounded"
-    >
-      <div>
-        <strong>{{ product.name }}</strong> - €{{ product.price.toFixed(2) }}
-        <span class="italic text-gray-600" v-if="product.category_name">
-          ({{ product.category_name }})
-        </span>
-      </div>
-      <div class="space-x-2">
-        <button @click="edit(product)" class="bg-yellow-300 px-2 rounded">🖊️</button>
-        <button @click="del(product.id)" class="bg-red-300 px-2 rounded">🗑️</button>
-      </div>
-    </div>
+    <router-link to="/categories" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
+    <router-link to="/summary/daily" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
+    <router-link to="/" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
 
     <form @submit.prevent="save" class="mt-4 space-y-2">
-      <input v-model="form.name" placeholder="Nom" class="w-full p-2 border rounded" required />
+      <input 
+        v-model="form.name" 
+        ref="nameInput"
+        placeholder="Nom" 
+        class="w-full p-2 border rounded" 
+        required 
+      />
       <input
         v-model.number="form.price"
         placeholder="Prix (€)"
@@ -36,6 +28,11 @@
         </option>
       </select>
 
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" v-model="form.available" />
+        <span>Disponible</span>
+      </label>
+
       <button class="w-full bg-green-500 text-white p-2 rounded">💾 Enregistrer</button>
       <button
         v-if="form.id"
@@ -47,12 +44,27 @@
       </button>
     </form>
     
-    <router-link to="/categories" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
-    <router-link to="/summary/daily" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
-    <router-link to="/" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
+      <div
+        v-for="product in products"
+        :key="product.id"
+        class="flex justify-between items-center border p-2 mb-2 rounded"
+        :class="{ 'opacity-50 line-through': product.available === 0 }"
+      >
+
+      <div>
+        <strong>{{ product.name }}</strong> - €{{ product.price.toFixed(2) }}
+        <span class="italic text-gray-600" v-if="product.category_name">
+          ({{ product.category_name }})
+        </span>
+      </div>
+      <div class="space-x-2">
+        <button @click="edit(product)" class="bg-yellow-300 px-2 rounded">🖊️</button>
+        <button @click="del(product.id)" class="bg-red-300 px-2 rounded">🗑️</button>
+      </div>
+    </div>
     <button
       @click="confirmDeleteOrders"
-      class="mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+      class="w-full mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
     >
       Supprimer toutes les commandes
     </button>
@@ -60,8 +72,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 
+const nameInput = ref(null);
 const products = ref([]);
 const categories = ref([]);
 
@@ -70,10 +83,12 @@ const form = reactive({
   name: '',
   price: 0,
   category_id: null,
+  available: true,
 });
 
+
 function reset() {
-  Object.assign(form, { id: null, name: '', price: 0, category_id: null });
+  Object.assign(form, { id: null, name: '', price: 0, category_id: null, available: true });
 }
 
 function edit(p) {
@@ -83,17 +98,23 @@ function edit(p) {
     name: p.name,
     price: p.price,
     category_id: p.category_id || null,
+    available: !!p.available,
+  });
+
+  // Attendre que le DOM se mette à jour avant de faire le focus
+  nextTick(() => {
+    nameInput.value?.focus();
   });
 }
 
 async function del(id) {
-  await fetch(`http://localhost:3001/products/${id}`, { method: 'DELETE' });
+  await fetch(`/api/products/${id}`, { method: 'DELETE' });
   await loadProducts();
 }
 
 async function save() {
   const method = form.id ? 'PUT' : 'POST';
-  const url = form.id ? `http://localhost:3001/products/${form.id}` : 'http://localhost:3001/products';
+  const url = form.id ? `/api/products/${form.id}` : '/api/products';
 
   await fetch(url, {
     method,
