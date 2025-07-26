@@ -1,5 +1,12 @@
 <template>
-  <div class="max-w-md mx-auto p-4">
+  <div class="relative max-w-md mx-auto p-4">
+    <!-- Bouton de déconnexion positionné absolument dans ce conteneur -->
+    <button
+      @click="logout"
+      class="absolute top-4 right-4 text-sm text-red-600 hover:underline"
+    >
+      🔓 Déconnexion
+    </button>
     <h1 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h1>
     <router-link to="/categories" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
     <router-link to="/summary/daily" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
@@ -76,11 +83,12 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 
 const nameInput = ref(null);
 const products = ref([]);
 const categories = ref([]);
-
+const router = useRouter();
 const form = reactive({
   id: null,
   name: '',
@@ -157,5 +165,10 @@ function confirmDeleteOrders() {
   if (confirm('Es-tu sûr de vouloir supprimer **toutes** les commandes ? Cette action est irréversible.')) {
     deleteAllOrders();
   }
+}
+
+function logout() {
+  localStorage.removeItem('auth'); // supprime le token
+  router.push('/login');           // redirige vers login
 }
 </script>
