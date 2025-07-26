@@ -3,12 +3,12 @@
 // ======================
 
 // backend/index.js
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-
 const app = express();
 const port = 3001;
 
@@ -210,6 +210,22 @@ app.get('/api/orders/:id', (req, res) => {
   });
 });
 
+app.delete('/api/orders/:id', (req, res) => {
+  const orderId = req.params.id;
+
+  db.serialize(() => {
+    db.run('DELETE FROM order_items WHERE order_id = ?', [orderId], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      db.run('DELETE FROM orders WHERE id = ?', [orderId], (err2) => {
+        if (err2) return res.status(500).json({ error: err2.message });
+
+        res.json({ message: 'Commande annulée avec succès.' });
+      });
+    });
+  });
+});
+
 app.get('/api/summary/today', (req, res) => {
   const query = `
     SELECT 
@@ -291,6 +307,16 @@ app.delete('/api/orders', (req, res) => {
       });
     });
   });
+});
+
+// POST /api/login
+app.post('/api/login', (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.ADMIN_PASSWORD) {
+    res.json({ success: true, token: 'secure-token' }); // ← ou session cookie
+  } else {
+    res.status(401).json({ error: 'Mot de passe incorrect' });
+  }
 });
 
 // Servir le frontend compilé

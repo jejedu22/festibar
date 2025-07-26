@@ -15,13 +15,29 @@ import { useRouter } from 'vue-router';
 const password = ref('');
 const router = useRouter();
 
-function login() {
-  console.log('Tentative de login...');
-  if (password.value === 'admin123') {
+async function login() {
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: password.value }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data.error || 'Erreur de connexion');
+      return;
+    }
+
+    const data = await response.json();
     localStorage.setItem('auth', 'true');
     router.push('/admin');
-  } else {
-    alert('Mot de passe incorrect');
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message);
   }
 }
+
 </script>
+
