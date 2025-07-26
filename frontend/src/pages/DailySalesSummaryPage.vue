@@ -41,7 +41,7 @@ import { ref, onMounted } from 'vue';
 const dailySummary = ref([]);
 
 onMounted(async () => {
-  const res = await fetch('http://localhost:3001/summary/daily');
+  const res = await fetch('/api/summary/daily');
   dailySummary.value = await res.json();
 });
 </script>

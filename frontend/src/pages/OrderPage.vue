@@ -111,7 +111,7 @@ async function submitOrder() {
       quantity,
     }));
 
-  const res = await fetch('http://localhost:3001/orders', {
+  const res = await fetch('/api/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items }),
@@ -128,8 +128,8 @@ async function submitOrder() {
 
 onMounted(async () => {
   const [productsRes, categoriesRes] = await Promise.all([
-    fetch('http://localhost:3001/products'),
-    fetch('http://localhost:3001/categories'),
+    fetch('/api/products'),
+    fetch('/api/categories'),
   ]);
   products.value = await productsRes.json();
   categories.value = await categoriesRes.json();

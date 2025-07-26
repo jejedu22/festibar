@@ -23,12 +23,12 @@ const categories = ref([]);
 const form = reactive({ name: '' });
 
 async function load() {
-  const res = await fetch('http://localhost:3001/categories');
+  const res = await fetch('/api/categories');
   categories.value = await res.json();
 }
 
 async function save() {
-  await fetch('http://localhost:3001/categories', {
+  await fetch('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(form)

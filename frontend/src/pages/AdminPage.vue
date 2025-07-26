@@ -106,12 +106,12 @@ async function save() {
 }
 
 async function loadProducts() {
-  const res = await fetch('http://localhost:3001/products');
+  const res = await fetch('/api/products');
   products.value = await res.json();
 }
 
 async function loadCategories() {
-  const res = await fetch('http://localhost:3001/categories');
+  const res = await fetch('/api/categories');
   categories.value = await res.json();
 }
 
@@ -120,7 +120,7 @@ onMounted(async () => {
 });
 
 async function deleteAllOrders() {
-  const res = await fetch('http://localhost:3001/orders', { method: 'DELETE' });
+  const res = await fetch('/api/orders', { method: 'DELETE' });
   if (res.ok) {
     alert('Toutes les commandes ont été supprimées.');
   } else {

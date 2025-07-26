@@ -37,7 +37,7 @@ import { onMounted, ref } from 'vue';
 const summary = ref({ products: [], total: 0 });
 
 onMounted(async () => {
-  const res = await fetch('http://localhost:3001/summary/today');
+  const res = await fetch('/api/summary/today');
   summary.value = await res.json();
 });
 </script>

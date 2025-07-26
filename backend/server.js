@@ -67,7 +67,7 @@ db.serialize(() => {
 
 // --- Routes ---
 
-app.get('/products', (req, res) => {
+app.get('/api/products', (req, res) => {
   const query = `
     SELECT p.id, p.name, p.price, p.category_id, c.name as category_name
     FROM products p
@@ -81,7 +81,7 @@ app.get('/products', (req, res) => {
 });
 
 
-app.post('/products', (req, res) => {
+app.post('/api/products', (req, res) => {
   const { name, price, category_id } = req.body;
   if (!name || price === undefined) {
     return res.status(400).json({ error: 'Name and price required' });
@@ -93,14 +93,14 @@ app.post('/products', (req, res) => {
 });
 
 
-app.delete('/products/:id', (req, res) => {
+app.delete('/api/products/:id', (req, res) => {
   db.run('DELETE FROM products WHERE id = ?', [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ deleted: this.changes });
   });
 });
 
-app.put('/products/:id', (req, res) => {
+app.put('/api/products/:id', (req, res) => {
   const { name, price } = req.body;
   db.run('UPDATE products SET name = ?, price = ? WHERE id = ?', [name, price, req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -109,7 +109,7 @@ app.put('/products/:id', (req, res) => {
 });
 
 // GET /categories
-app.get('/categories', (req, res) => {
+app.get('/api/categories', (req, res) => {
   db.all('SELECT * FROM categories', (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
@@ -117,7 +117,7 @@ app.get('/categories', (req, res) => {
 });
 
 // POST /categories
-app.post('/categories', (req, res) => {
+app.post('/api/categories', (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Name required' });
   db.run('INSERT INTO categories (name) VALUES (?)', [name], function (err) {
@@ -126,7 +126,7 @@ app.post('/categories', (req, res) => {
   });
 });
 
-app.delete('/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', (req, res) => {
   const categoryId = req.params.id;
   
   db.get('SELECT COUNT(*) AS count FROM products WHERE category_id = ?', [categoryId], (err, row) => {
@@ -143,7 +143,7 @@ app.delete('/categories/:id', (req, res) => {
   });
 });
 
-app.post('/orders', (req, res) => {
+app.post('/api/orders', (req, res) => {
   const { items } = req.body;
   if (!items || items.length === 0) return res.status(400).json({ error: 'Empty order' });
 
@@ -183,7 +183,7 @@ app.post('/orders', (req, res) => {
 });
 
 // GET /orders/:id - détail d'une commande
-app.get('/orders/:id', (req, res) => {
+app.get('/api/orders/:id', (req, res) => {
   const orderId = req.params.id;
 
   const query = `
@@ -201,7 +201,7 @@ app.get('/orders/:id', (req, res) => {
   });
 });
 
-app.get('/summary/today', (req, res) => {
+app.get('/api/summary/today', (req, res) => {
   const query = `
     SELECT 
       p.id,
@@ -225,7 +225,7 @@ app.get('/summary/today', (req, res) => {
   });
 });
 
-app.get('/summary/daily', (req, res) => {
+app.get('/api/summary/daily', (req, res) => {
   const query = `
     SELECT 
       date(o.timestamp) AS day,
@@ -272,7 +272,7 @@ app.get('/summary/daily', (req, res) => {
   });
 });
 
-app.delete('/orders', (req, res) => {
+app.delete('/api/orders', (req, res) => {
   db.serialize(() => {
     db.run('DELETE FROM order_items', (err) => {
       if (err) return res.status(500).json({ error: err.message });
