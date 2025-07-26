@@ -14,6 +14,14 @@
     <router-link to="/" class="block mt-6 w-full bg-green-500 text-white text-center py-2 rounded">
       ➕ Nouvelle commande
     </router-link>
+
+    <button
+      @click="cancelOrder"
+      class="mt-4 w-full bg-red-500 text-white py-2 rounded hover:bg-red-600 transition"
+    >
+      ❌ Annuler la commande
+    </button>
+
   </div>
 </template>
 
@@ -35,4 +43,29 @@ onMounted(async () => {
   items.value = data.items;
   total.value = data.total;
 });
+
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const orderId = route.query.orderId;
+
+async function cancelOrder() {
+  if (!orderId) return;
+
+  const confirmCancel = confirm('Es-tu sûr de vouloir annuler cette commande ?');
+  if (!confirmCancel) return;
+
+  const res = await fetch(`/api/orders/${orderId}`, {
+    method: 'DELETE',
+  });
+
+  if (res.ok) {
+    alert('Commande annulée.');
+    router.push('/');
+  } else {
+    const err = await res.json();
+    alert('Erreur : ' + (err.error || 'Impossible d’annuler la commande.'));
+  }
+}
+
 </script>
