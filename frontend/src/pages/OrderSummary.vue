@@ -30,7 +30,7 @@ onMounted(async () => {
 
   if (!orderId) return;
 
-  const res = await fetch(`http://localhost:3001/orders/${orderId}`);
+  const res = await fetch(`/api/orders/${orderId}`);
   const data = await res.json();
   items.value = data.items;
   total.value = data.total;

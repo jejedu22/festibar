@@ -40,7 +40,7 @@ async function save() {
 async function del(id) {
   if (!confirm('Voulez-vous vraiment supprimer cette catégorie ?')) return;
   
-  const res = await fetch(`http://localhost:3001/categories/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
   if (!res.ok) {
     const data = await res.json();
     alert(data.error || "Erreur lors de la suppression.");
