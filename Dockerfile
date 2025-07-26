@@ -1,24 +1,20 @@
-# 🐳 Étape 1 : Image légère avec Node
+# Étape 1 : Utiliser Node.js
 FROM node:20
 
-# Dossier de travail dans le container
+# Créer un dossier de travail
 WORKDIR /app
 
-# Copier le backend
-COPY backend/ ./backend
-
-# Copier uniquement le frontend déjà compilé
-# RUN cd frontend && npm install --omit=dev && npm run build
-# COPY ./frontend/dist/ ./backend/public/
-
-# Copier les fichiers de config backend (ex: package.json à la racine ou dans backend)
+# Copier les fichiers de config backend d'abord pour le cache
 COPY backend/package*.json ./backend/
 
 # Installer les dépendances backend
 RUN cd backend && npm install --omit=dev
 
-# Exposer le port du serveur Express
-EXPOSE 3001
+# Copier tous les fichiers backend
+COPY backend/ ./
 
-# Lancer le backend
-CMD ["node", "backend/server.js"]
+# Exposer le port du serveur Express
+EXPOSE 80
+
+# Commande de démarrage
+CMD ["node", "server.js"]
