@@ -2,11 +2,11 @@
   "name": "bar-app",
   "version": "1.0.0",
   "description": "Une application web simple pour gérer les commandes d’un bar lors d’un festival, avec interface admin, gestion de produits, catégories, commandes et rapports de ventes journaliers.",
-  "main": "backend/server.js",
+  "main": "backend/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm install && vite",
-    "dev:backend": "cd backend && npm install && nodemon server.js"
+    "dev:backend": "cd backend && npm install && nodemon index.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",

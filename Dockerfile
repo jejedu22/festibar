@@ -14,4 +14,4 @@ RUN npm install --omit=dev
 EXPOSE 80
 
 # Commande de démarrage
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
