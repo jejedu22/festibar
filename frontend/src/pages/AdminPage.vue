@@ -169,6 +169,6 @@ function confirmDeleteOrders() {
 
 function logout() {
   localStorage.removeItem('auth'); // supprime le token
-  router.push('/login');           // redirige vers login
+  router.push('/');           // redirige vers login
 }
 </script>
