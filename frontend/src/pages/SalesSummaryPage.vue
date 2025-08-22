@@ -25,7 +25,7 @@
       Total global : €{{ summary.total.toFixed(2) }}
     </div>
 
-    <router-link to="/admin" class="block mt-6 text-blue-600 hover:underline">
+    <router-link :to="`/${orgSlug}/admin`" class="block mt-6 text-blue-600 hover:underline">
       ⬅ Retour à l'administration
     </router-link>
   </div>
@@ -33,11 +33,15 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const orgSlug = route.params.orgSlug;
 
 const summary = ref({ products: [], total: 0 });
 
 onMounted(async () => {
-  const res = await fetch('/api/summary/today');
+  const res = await fetch(`/api/${orgSlug}/summary/today`);
   summary.value = await res.json();
 });
 </script>

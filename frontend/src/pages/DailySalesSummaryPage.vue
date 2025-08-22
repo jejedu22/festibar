@@ -1,6 +1,7 @@
 <template>
   <div class="max-w-3xl mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">📅 Résumé des ventes jour par jour</h1>
+    <h1 class="text-2xl font-bold mb-6">{{ orgStore.organizationName }}</h1>
+    <h2 class="text-2xl font-bold mb-6">📅 Résumé des ventes jour par jour</h2>
 
     <div v-for="daySummary in dailySummary" :key="daySummary.day" class="mb-10">
       <h2 class="text-xl font-semibold mb-2 border-b pb-1">{{ daySummary.day }}</h2>
@@ -29,7 +30,7 @@
       </div>
     </div>
 
-    <router-link to="/admin" class="block mt-6 text-blue-600 hover:underline">
+    <router-link :to="`/${orgSlug}/admin`" class="block mt-6 text-blue-600 hover:underline">
       ⬅ Retour à l'administration
     </router-link>
   </div>
@@ -37,11 +38,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { useOrganizationStore } from '@/stores/organization'
+
+const route = useRoute();
+const orgSlug = route.params.orgSlug;
+const orgStore = useOrganizationStore()
 
 const dailySummary = ref([]);
 
 onMounted(async () => {
-  const res = await fetch('/api/summary/daily');
+  const res = await fetch(`/api/${orgSlug}/summary/daily`);
   dailySummary.value = await res.json();
 });
 </script>

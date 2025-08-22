@@ -7,10 +7,11 @@
     >
       🔓 Déconnexion
     </button>
-    <h1 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h1>
-    <router-link to="/categories" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
-    <router-link to="/summary/daily" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
-    <router-link to="/" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
+    <h1 class="text-xl font-bold mb-4">{{ orgStore.organizationName }}</h1>
+    <h2 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h2>
+    <router-link :to="`/${orgSlug}/categories`" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
+    <router-link :to="`/${orgSlug}/summary/daily`" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
+    <router-link :to="`/${orgSlug}/`" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
 
     <form @submit.prevent="save" class="mt-4 space-y-2">
       <input 
@@ -83,12 +84,17 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { useOrganizationStore } from '@/stores/organization'
+
+const route = useRoute();
+const router = useRouter();
+const orgSlug = route.params.orgSlug;
+const orgStore = useOrganizationStore()
 
 const nameInput = ref(null);
 const products = ref([]);
 const categories = ref([]);
-const router = useRouter();
 const form = reactive({
   id: null,
   name: '',
@@ -97,13 +103,11 @@ const form = reactive({
   available: true,
 });
 
-
 function reset() {
   Object.assign(form, { id: null, name: '', price: 0, category_id: null, available: true });
 }
 
 function edit(p) {
-  // Remplit le formulaire avec le produit sélectionné
   Object.assign(form, {
     id: p.id,
     name: p.name,
@@ -111,21 +115,19 @@ function edit(p) {
     category_id: p.category_id || null,
     available: !!p.available,
   });
-
-  // Attendre que le DOM se mette à jour avant de faire le focus
   nextTick(() => {
     nameInput.value?.focus();
   });
 }
 
 async function del(id) {
-  await fetch(`/api/products/${id}`, { method: 'DELETE' });
+  await fetch(`/api/${orgSlug}/products/${id}`, { method: 'DELETE' });
   await loadProducts();
 }
 
 async function save() {
   const method = form.id ? 'PUT' : 'POST';
-  const url = form.id ? `/api/products/${form.id}` : '/api/products';
+  const url = form.id ? `/api/${orgSlug}/products/${form.id}` : `/api/${orgSlug}/products`;
 
   await fetch(url, {
     method,
@@ -138,12 +140,12 @@ async function save() {
 }
 
 async function loadProducts() {
-  const res = await fetch('/api/products');
+  const res = await fetch(`/api/${orgSlug}/products`);
   products.value = await res.json();
 }
 
 async function loadCategories() {
-  const res = await fetch('/api/categories');
+  const res = await fetch(`/api/${orgSlug}/categories`);
   categories.value = await res.json();
 }
 
@@ -152,7 +154,7 @@ onMounted(async () => {
 });
 
 async function deleteAllOrders() {
-  const res = await fetch('/api/orders', { method: 'DELETE' });
+  const res = await fetch(`/api/${orgSlug}/orders`, { method: 'DELETE' });
   if (res.ok) {
     alert('Toutes les commandes ont été supprimées.');
   } else {
@@ -168,7 +170,7 @@ function confirmDeleteOrders() {
 }
 
 function logout() {
-  localStorage.removeItem('auth'); // supprime le token
-  router.push('/');           // redirige vers login
+  localStorage.removeItem('auth');
+  router.push(`/${orgSlug}/`);
 }
 </script>

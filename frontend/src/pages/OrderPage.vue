@@ -1,7 +1,8 @@
 <template>
   <div class="max-w-md mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-4">🎪 Commande Bar Festival</h1>
+    <h1 class="text-2xl font-bold mb-4">🎪 {{ orgStore.organizationName }}</h1>
     <div class="mt-4 text-lg">Total: €{{ total.toFixed(2) }}</div>
+
     <div
       v-for="category in categoriesWithProducts"
       :key="category.id"
@@ -56,32 +57,34 @@
       </div>
     </div>
 
-
-<button
-  @click="submitOrder"
-  style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-  class="min-h-[5rem] mt-4 w-full bg-blue-500 text-white text-lg font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition text-center truncate"
->
-  Valider la commande
-</button>
-
-    <router-link to="/admin" class="block text-center mt-4 text-sm text-gray-500"
-      >🔒 Admin</router-link
+    <button
+      @click="submitOrder"
+      style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+      class="min-h-[5rem] mt-4 w-full bg-blue-500 text-white text-lg font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition text-center truncate"
     >
+      Valider la commande
+    </button>
+
+    <router-link :to="`/${orgSlug}/admin`" class="block text-center mt-4 text-sm text-gray-500">
+      🔒 Admin
+    </router-link>
   </div>
 </template>
 
-
-
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { useOrganizationStore } from '@/stores/organization'
 
 const router = useRouter();
+const route = useRoute();
+const orgSlug = route.params.orgSlug;
+const orgStore = useOrganizationStore()
+
 const products = ref([]);
 const categories = ref([]);
 const cart = reactive({});
-const expanded = reactive({}); // ← état des catégories dépliées
+const expanded = reactive({});
 
 const total = computed(() => {
   return products.value.reduce((sum, p) => sum + (cart[p.id] || 0) * p.price, 0);
@@ -95,7 +98,6 @@ function toggleCategory(categoryId) {
   expanded[categoryId] = !expanded[categoryId];
 }
 
-// Construit un tableau avec catégories + produits
 const categoriesWithProducts = computed(() => {
   return categories.value
     .map((cat) => ({
@@ -115,7 +117,7 @@ async function submitOrder() {
       quantity,
     }));
 
-  const res = await fetch('/api/orders', {
+  const res = await fetch(`/api/${orgSlug}/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items }),
@@ -127,13 +129,14 @@ async function submitOrder() {
   Object.keys(cart).forEach((k) => (cart[k] = 0));
 
   // Redirection vers résumé
-  router.push({ path: '/summary', query: { orderId: data.orderId } });
+  router.push({ path: `/${orgSlug}/summary`, query: { orderId: data.orderId } });
 }
 
 onMounted(async () => {
+  orgStore.loadOrganization(orgSlug)
   const [productsRes, categoriesRes] = await Promise.all([
-    fetch('/api/products'),
-    fetch('/api/categories'),
+    fetch(`/api/${orgSlug}/products`),
+    fetch(`/api/${orgSlug}/categories`),
   ]);
   products.value = await productsRes.json();
   categories.value = await categoriesRes.json();
