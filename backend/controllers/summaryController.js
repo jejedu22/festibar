@@ -1,3 +1,4 @@
+// backend/controllers/summaryController.js
 const db = require('../config/database');
 
 exports.today = (req, res) => {

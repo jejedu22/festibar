@@ -1,4 +1,4 @@
-// middlewares/withOrganization.js
+// backend/middlewares/withOrganization.js
 const db = require('../config/database');
 
 function withOrganization(req, res, next) {

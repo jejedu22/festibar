@@ -1,4 +1,4 @@
-// controllers/organizationController.js
+// backend/controllers/organizationController.js
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 

@@ -1,3 +1,4 @@
+// backend/controllers/productController.js
 const db = require('../config/database');
 
 exports.getAll = (req, res) => {
