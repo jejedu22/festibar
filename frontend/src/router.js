@@ -35,6 +35,7 @@ export default createRouter({
         { path: 'summary/today', component: SalesSummaryPage },
         { path: 'summary/daily', component: DailySalesSummaryPage },
         { path: 'admin', component: AdminPage },
+        { path: 'login', component: LoginPage },
       ]
     },
 
