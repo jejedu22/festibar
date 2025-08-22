@@ -1,3 +1,4 @@
+<!-- frontend/src/views/AdminOrganizations.vue -->
 <template>
   <div class="relative max-w-md mx-auto p-4">
     <!-- Bouton de déconnexion -->

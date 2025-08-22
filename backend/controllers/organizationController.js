@@ -25,6 +25,7 @@ exports.getOne = (req, res) => {
 };
 
 exports.update = (req, res) => {
+  const { id } = req.params;
   const { name, slug, password } = req.body;
   if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
 
@@ -34,7 +35,7 @@ exports.update = (req, res) => {
     `UPDATE organizations
      SET name = ?, slug = ?, password = ?
      WHERE id = ?`,
-    [name, slug, hashedPassword],
+    [name, slug, hashedPassword, id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ updated: this.changes });
