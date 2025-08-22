@@ -10,6 +10,6 @@ router.use('/:orgSlug/summary', require('./summaryRoutes'));
 router.use('/:orgSlug/login', require('./authRoutes'));
 
 // Routes globales (admin)
+router.use('/admin/auth', require('./adminAuthRoutes'));
 router.use('/admin/organizations', require('./organizationRoutes'));
-
 module.exports = router;

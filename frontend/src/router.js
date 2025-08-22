@@ -8,11 +8,21 @@ import OrderSummary from './pages/OrderSummary.vue';
 import SalesSummaryPage from './pages/SalesSummaryPage.vue';
 import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue';
 import AdminOrganizations from './views/AdminOrganizations.vue';
+import AdminLoginPage from './pages/AdminLoginPage.vue'; // nouvelle page login admin global
 
 const requireAuth = (to, from, next) => {
   const isAuthenticated = localStorage.getItem('auth') === 'true';
   if (!isAuthenticated) {
     next('/login');
+  } else {
+    next();
+  }
+};
+
+const requireAdminAuth = (to, from, next) => {
+  const isAdmin = localStorage.getItem('isAdminAuthenticated') === 'true';
+  if (!isAdmin) {
+    next('/admin/auth/login');
   } else {
     next();
   }
@@ -40,8 +50,8 @@ export default createRouter({
     },
 
     // Routes admin globales
-    { path: '/admin/organizations', component: AdminOrganizations },
-    // { path: '/admin/organizations', component: AdminOrganizations, beforeEnter: requireAuth },
+    { path: '/admin/auth/login', component: AdminLoginPage },
+    { path: '/admin/organizations', component: AdminOrganizations, beforeEnter: requireAdminAuth },
   ]
 });
 

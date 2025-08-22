@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-sm mx-auto p-4">
-    <h1 class="text-xl font-bold mb-4">Connexion Admin</h1>
+    <h1 class="text-xl font-bold mb-4">Connexion {{ orgStore.organizationName }}</h1>
     <form @submit.prevent="login" class="space-y-2">
       <!-- Le slug est dans l'URL, pas besoin de le saisir -->
       <input
