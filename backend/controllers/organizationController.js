@@ -79,3 +79,21 @@ exports.delete = (req, res) => {
     }
   );
 };
+
+// --- Vérifier mot de passe de l'organisation ---
+exports.login = (req, res) => {
+  const { slug, password } = req.body;
+  if (!slug || !password) return res.status(400).json({ error: 'Slug et mot de passe requis' });
+
+  const query = `SELECT id, name, password FROM organizations WHERE slug = ?`;
+  db.get(query, [slug], (err, org) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!org) return res.status(404).json({ error: 'Organisation non trouvée' });
+
+    const valid = bcrypt.compareSync(password, org.password);
+    if (!valid) return res.status(401).json({ error: 'Mot de passe incorrect' });
+
+    // Pour simplifier, on peut renvoyer l'id et le nom, ou créer un token JWT
+    res.json({ id: org.id, name: org.name });
+  });
+};
