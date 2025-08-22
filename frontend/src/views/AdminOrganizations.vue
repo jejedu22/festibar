@@ -140,6 +140,11 @@ async function save() {
 }
 
 async function loadOrganizations() {
+  const res = await fetch(`/api/admin/organizations`, {
+    headers: {
+      'x-admin-password': import.meta.env.VITE_ADMIN_PASSWORD
+    }
+  })
   try {
     loading.value = true
     const res = await fetch('/api/admin/organizations')

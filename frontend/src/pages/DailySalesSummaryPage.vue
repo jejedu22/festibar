@@ -47,8 +47,20 @@ const orgStore = useOrganizationStore()
 
 const dailySummary = ref([]);
 
+// --- Fonction utilitaire pour ajouter l'auth à toutes les requêtes ---
+function getAuthHeaders() {
+  if (!orgStore.organization) return {}
+  return {
+    'Content-Type': 'application/json',
+    'x-auth': JSON.stringify({
+      id: orgStore.organization.id,
+      slug: orgStore.organization.slug,
+    }),
+  }
+}
+
 onMounted(async () => {
-  const res = await fetch(`/api/${orgSlug}/summary/daily`);
+  const res = await fetch(`/api/${orgSlug}/summary/daily`, { headers: getAuthHeaders() });
   dailySummary.value = await res.json();
 });
 </script>

@@ -18,43 +18,67 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useOrganizationStore } from '@/stores/organization'
 
-const route = useRoute();
-const orgSlug = route.params.orgSlug;
+const route = useRoute()
+const router = useRouter()
+const orgSlug = route.params.orgSlug
 const orgStore = useOrganizationStore()
 
-const categories = ref([]);
-const form = reactive({ name: '' });
-
-async function load() {
-  const res = await fetch(`/api/${orgSlug}/categories`);
-  categories.value = await res.json();
+// Redirige vers login si pas connecté
+if (!orgStore.isAuthenticated || orgStore.organization?.slug !== orgSlug) {
+  router.push(`/${orgSlug}/login`)
 }
 
-async function save() {
-  await fetch(`/api/${orgSlug}/categories`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(form)
-  });
-  form.name = '';
-  load();
-}
+const categories = ref([])
+const form = reactive({ name: '' })
 
-async function del(id) {
-  if (!confirm('Voulez-vous vraiment supprimer cette catégorie ?')) return;
-  
-  const res = await fetch(`/api/${orgSlug}/categories/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const data = await res.json();
-    alert(data.error || "Erreur lors de la suppression.");
-  } else {
-    load();
+function getAuthHeaders() {
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}')
+  return {
+    'Content-Type': 'application/json',
+    'x-auth': JSON.stringify(auth)
   }
 }
 
-onMounted(load);
+async function load() {
+  const res = await fetch(`/api/${orgSlug}/categories`, {
+    headers: getAuthHeaders()
+  })
+  categories.value = await res.json()
+}
+
+async function save() {
+  const res = await fetch(`/api/${orgSlug}/categories`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(form)
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    alert(data.error || "Erreur lors de l'ajout.")
+  } else {
+    form.name = ''
+    load()
+  }
+}
+
+async function del(id) {
+  if (!confirm('Voulez-vous vraiment supprimer cette catégorie ?')) return
+
+  const res = await fetch(`/api/${orgSlug}/categories/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  })
+  if (!res.ok) {
+    const data = await res.json()
+    alert(data.error || "Erreur lors de la suppression.")
+  } else {
+    load()
+  }
+}
+
+onMounted(load)
 </script>

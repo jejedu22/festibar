@@ -6,7 +6,7 @@ router.use('/:orgSlug/products', require('./productRoutes'));
 router.use('/:orgSlug/categories', require('./categoryRoutes'));
 router.use('/:orgSlug/orders', require('./orderRoutes'));
 router.use('/:orgSlug/summary', require('./summaryRoutes'));
-router.use('/:orgSlug/auth', require('./authRoutes'));
+router.use('/:orgSlug/login', require('./authRoutes'));
 
 // Routes globales (admin)
 router.use('/admin/organizations', require('./organizationRoutes'));

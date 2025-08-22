@@ -5,6 +5,6 @@ const withOrganization = require('../middlewares/withOrganization');
 
 router.use(withOrganization);
 
-router.post('/login', authController.login);
+router.post('/', authController.login);
 
 module.exports = router;

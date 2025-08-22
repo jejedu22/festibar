@@ -1,18 +1,21 @@
 <template>
   <div class="relative max-w-md mx-auto p-4">
-    <!-- Bouton de déconnexion positionné absolument dans ce conteneur -->
+    <!-- Bouton de déconnexion -->
     <button
       @click="logout"
       class="absolute top-4 right-4 text-sm text-red-600 hover:underline"
     >
       🔓 Déconnexion
     </button>
+
     <h1 class="text-xl font-bold mb-4">{{ orgStore.organizationName }}</h1>
     <h2 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h2>
+
     <router-link :to="`/${orgSlug}/categories`" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
     <router-link :to="`/${orgSlug}/summary/daily`" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
     <router-link :to="`/${orgSlug}/`" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
 
+    <!-- Formulaire produit -->
     <form @submit.prevent="save" class="mt-4 space-y-2">
       <input 
         v-model="form.name" 
@@ -53,6 +56,8 @@
         ✖️ Annuler
       </button>
     </form>
+
+    <!-- Liste des produits -->
     <div class="mt-8">
       <div
         v-for="product in products"
@@ -60,7 +65,6 @@
         class="flex justify-between items-center border p-2 mb-2 rounded"
         :class="{ 'opacity-50 line-through': product.available === 0 }"
       >
-
         <div>
           <strong>{{ product.name }}</strong> - €{{ product.price.toFixed(2) }}
           <span class="italic text-gray-600" v-if="product.category_name">
@@ -73,6 +77,8 @@
         </div>
       </div>
     </div>
+
+    <!-- Bouton supprimer toutes les commandes -->
     <button
       @click="confirmDeleteOrders"
       class="w-full mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
@@ -83,28 +89,35 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useOrganizationStore } from '@/stores/organization'
 
-const route = useRoute();
-const router = useRouter();
-const orgSlug = route.params.orgSlug;
+const route = useRoute()
+const router = useRouter()
+const orgSlug = route.params.orgSlug
 const orgStore = useOrganizationStore()
 
-const nameInput = ref(null);
-const products = ref([]);
-const categories = ref([]);
+// Redirection si non authentifié
+if (!orgStore.isAuthenticated || orgStore.organization?.slug !== orgSlug) {
+  router.push(`/${orgSlug}/login`)
+}
+
+// Références et données réactives
+const nameInput = ref(null)
+const products = ref([])
+const categories = ref([])
 const form = reactive({
   id: null,
   name: '',
   price: 0,
   category_id: null,
   available: true,
-});
+})
 
+// --- Fonctions utilitaires ---
 function reset() {
-  Object.assign(form, { id: null, name: '', price: 0, category_id: null, available: true });
+  Object.assign(form, { id: null, name: '', price: 0, category_id: null, available: true })
 }
 
 function edit(p) {
@@ -114,63 +127,79 @@ function edit(p) {
     price: p.price,
     category_id: p.category_id || null,
     available: !!p.available,
-  });
-  nextTick(() => {
-    nameInput.value?.focus();
-  });
+  })
+  nextTick(() => nameInput.value?.focus())
 }
 
+// Récupère les headers avec l'auth pour les requêtes protégées
+function getAuthHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'x-auth': JSON.stringify({ id: orgStore.organization.id, slug: orgStore.organization.slug })
+  }
+}
+
+// --- Requêtes API ---
 async function del(id) {
-  await fetch(`/api/${orgSlug}/products/${id}`, { method: 'DELETE' });
-  await loadProducts();
+  await fetch(`/api/${orgSlug}/products/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  })
+  await loadProducts()
 }
 
 async function save() {
-  const method = form.id ? 'PUT' : 'POST';
-  const url = form.id ? `/api/${orgSlug}/products/${form.id}` : `/api/${orgSlug}/products`;
+  const method = form.id ? 'PUT' : 'POST'
+  const url = form.id ? `/api/${orgSlug}/products/${form.id}` : `/api/${orgSlug}/products`
 
   await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(form),
-  });
+    headers: getAuthHeaders(),
+    body: JSON.stringify(form)
+  })
 
-  reset();
-  await loadProducts();
+  reset()
+  await loadProducts()
 }
 
 async function loadProducts() {
-  const res = await fetch(`/api/${orgSlug}/products`);
-  products.value = await res.json();
+  const res = await fetch(`/api/${orgSlug}/products`)
+  products.value = await res.json()
 }
 
 async function loadCategories() {
-  const res = await fetch(`/api/${orgSlug}/categories`);
-  categories.value = await res.json();
+  const res = await fetch(`/api/${orgSlug}/categories`)
+  categories.value = await res.json()
 }
 
-onMounted(async () => {
-  await Promise.all([loadProducts(), loadCategories()]);
-});
-
+// --- Gestion commandes ---
 async function deleteAllOrders() {
-  const res = await fetch(`/api/${orgSlug}/orders`, { method: 'DELETE' });
+  const res = await fetch(`/api/${orgSlug}/orders`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  })
   if (res.ok) {
-    alert('Toutes les commandes ont été supprimées.');
+    alert('Toutes les commandes ont été supprimées.')
   } else {
-    const data = await res.json();
-    alert('Erreur : ' + (data.error || 'Impossible de supprimer les commandes.'));
+    const data = await res.json()
+    alert('Erreur : ' + (data.error || 'Impossible de supprimer les commandes.'))
   }
 }
 
 function confirmDeleteOrders() {
   if (confirm('Es-tu sûr de vouloir supprimer **toutes** les commandes ? Cette action est irréversible.')) {
-    deleteAllOrders();
+    deleteAllOrders()
   }
 }
 
+// --- Logout ---
 function logout() {
-  localStorage.removeItem('auth');
-  router.push(`/${orgSlug}/`);
+  orgStore.logout()
+  router.push(`/${orgSlug}/`)
 }
+
+// --- Initialisation ---
+onMounted(async () => {
+  await Promise.all([loadProducts(), loadCategories()])
+})
 </script>

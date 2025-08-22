@@ -32,16 +32,34 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useOrganizationStore } from '@/stores/organization'
 
-const route = useRoute();
-const orgSlug = route.params.orgSlug;
+const route = useRoute()
+const orgSlug = route.params.orgSlug
+const orgStore = useOrganizationStore()
 
-const summary = ref({ products: [], total: 0 });
+const summary = ref({ products: [], total: 0 })
+
+// --- Fonction utilitaire pour ajouter l'auth à toutes les requêtes ---
+function getAuthHeaders() {
+  if (!orgStore.organization) return {}
+  return {
+    'Content-Type': 'application/json',
+    'x-auth': JSON.stringify({
+      id: orgStore.organization.id,
+      slug: orgStore.organization.slug,
+    }),
+  }
+}
 
 onMounted(async () => {
-  const res = await fetch(`/api/${orgSlug}/summary/today`);
-  summary.value = await res.json();
-});
+  const res = await fetch(`/api/${orgSlug}/summary/today`, { headers: getAuthHeaders() })
+  if (!res.ok) {
+    alert('Impossible de récupérer le résumé des ventes.')
+    return
+  }
+  summary.value = await res.json()
+})
 </script>

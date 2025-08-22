@@ -1,5 +1,6 @@
 // controllers/organizationController.js
 const db = require('../config/database');
+const bcrypt = require('bcrypt');
 
 // --- Liste des organisations ---
 exports.getAll = (req, res) => {
@@ -23,9 +24,25 @@ exports.getOne = (req, res) => {
   });
 };
 
-// --- Créer une organisation ---
-const bcrypt = require('bcrypt');
+exports.update = (req, res) => {
+  const { name, slug, password } = req.body;
+  if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
 
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  db.run(
+    `UPDATE organizations
+     SET name = ?, slug = ?, password = ?
+     WHERE id = ?`,
+    [name, slug, hashedPassword],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ updated: this.changes });
+    }
+  );
+};
+
+// --- Créer une organisation ---
 exports.create = (req, res) => {
   const { name, slug, password } = req.body;
   if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
