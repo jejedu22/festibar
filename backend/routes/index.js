@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-router.use('/products', require('./products'));
-router.use('/categories', require('./categories'));
-router.use('/orders', require('./orders'));
-router.use('/summary', require('./summary'));
-router.use('/auth', require('./auth'));
+// Routes liées à une organisation
+router.use('/:orgSlug/products', require('./productRoutes'));
+router.use('/:orgSlug/categories', require('./categoryRoutes'));
+router.use('/:orgSlug/orders', require('./orderRoutes'));
+router.use('/:orgSlug/summary', require('./summaryRoutes'));
+router.use('/:orgSlug/auth', require('./authRoutes'));
+
+// Routes globales (admin)
+router.use('/admin/organizations', require('./organizationRoutes'));
 
 module.exports = router;
