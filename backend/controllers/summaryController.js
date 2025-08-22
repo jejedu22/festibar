@@ -1,6 +1,7 @@
 const db = require('../config/database');
 
 exports.today = (req, res) => {
+  const orgId = req.organizationId;
   const query = `
     SELECT p.id, p.name, p.price,
            SUM(oi.quantity) AS total_quantity,
@@ -8,10 +9,10 @@ exports.today = (req, res) => {
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     JOIN products p ON oi.product_id = p.id
-    WHERE date(o.timestamp) = date('now')
+    WHERE date(o.timestamp) = date('now') AND o.organization_id = ?
     GROUP BY p.id
   `;
-  db.all(query, (err, rows) => {
+  db.all(query, [orgId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     const total = rows.reduce((sum, r) => sum + r.total_amount, 0);
     res.json({ products: rows, total });
@@ -19,6 +20,7 @@ exports.today = (req, res) => {
 };
 
 exports.daily = (req, res) => {
+  const orgId = req.organizationId;
   const query = `
     SELECT date(o.timestamp) AS day, p.id, p.name, p.price,
            SUM(oi.quantity) AS total_quantity,
@@ -26,10 +28,11 @@ exports.daily = (req, res) => {
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     JOIN products p ON oi.product_id = p.id
+    WHERE o.organization_id = ?
     GROUP BY day, p.id
     ORDER BY day DESC, p.name
   `;
-  db.all(query, (err, rows) => {
+  db.all(query, [orgId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
     const grouped = {};
@@ -38,6 +41,7 @@ exports.daily = (req, res) => {
       grouped[row.day].products.push(row);
       grouped[row.day].total += row.total_amount;
     });
+
     res.json(Object.values(grouped).sort((a, b) => b.day.localeCompare(a.day)));
   });
 };
