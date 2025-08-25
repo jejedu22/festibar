@@ -1,3 +1,4 @@
+<!-- frontend/src/pages/OrderPage.vue -->
 <template>
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">🎪 {{ orgStore.organizationName }}</h1>
@@ -31,7 +32,6 @@
             <div v-if="product.available" class="text-sm text-gray-600">€{{ product.price.toFixed(2) }}</div>
           </div>
           <div v-if="product.available" class="flex items-center gap-1">
-            <!-- Bouton "-" -->
             <button
               @click="changeQuantity(product.id, -1)"
               class="bg-red-200 w-20 min-w-[5rem] min-h-[5rem] flex items-center justify-center rounded-lg"
@@ -42,8 +42,7 @@
             </button>
 
             <span class="text-2xl px-4 min-w-[2.5rem] text-center">{{ cart[product.id] || 0 }}</span>
-            
-            <!-- Bouton "+" -->
+
             <button
               @click="changeQuantity(product.id, 1)"
               class="bg-green-200 w-20 min-w-[5rem] min-h-[5rem] flex items-center justify-center rounded-lg"
@@ -141,7 +140,6 @@ onMounted(async () => {
   products.value = await productsRes.json();
   categories.value = await categoriesRes.json();
 
-  // Init des états repliés
   categories.value.forEach((cat) => {
     expanded[cat.id] = false;
   });

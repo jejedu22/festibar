@@ -18,9 +18,10 @@ exports.getOne = (req, res) => {
       FROM organizations o
       WHERE o.id = ?
     `;
-  db.get(query, [orgId], (err, rows) => {
+  db.get(query, [orgId], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+    if (!row) return res.status(404).json({ error: "Organisation non trouvée" });
+    res.json(row);
   });
 };
 

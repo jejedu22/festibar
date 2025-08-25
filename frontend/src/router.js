@@ -1,45 +1,47 @@
-// frontend/src/router.js
-import { createRouter, createWebHistory } from 'vue-router';
-import OrderPage from './pages/OrderPage.vue';
-import AdminPage from './pages/AdminPage.vue';
-import CategoriesPage from './pages/CategoriesPage.vue';
-import LoginPage from './pages/LoginPage.vue';
-import OrderSummary from './pages/OrderSummary.vue';
-import SalesSummaryPage from './pages/SalesSummaryPage.vue';
-import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue';
-import AdminOrganizations from './views/AdminOrganizations.vue';
-import AdminLoginPage from './pages/AdminLoginPage.vue'; // nouvelle page login admin global
+import { createRouter, createWebHistory } from 'vue-router'
+import OrganizationLayout from './layouts/OrganizationLayout.vue'
 
+// Pages organisation
+import OrderPage from './pages/OrderPage.vue'
+import CategoriesPage from './pages/CategoriesPage.vue'
+import OrderSummary from './pages/OrderSummary.vue'
+import SalesSummaryPage from './pages/SalesSummaryPage.vue'
+import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue'
+import AdminPage from './pages/AdminPage.vue'
+import LoginPage from './pages/LoginPage.vue'
+
+// Pages admin global
+import AdminOrganizations from './views/AdminOrganizations.vue'
+import AdminLoginPage from './pages/AdminLoginPage.vue'
+
+// Autres pages
+import HomePage from './pages/HomePage.vue'
+import NotFound from './pages/NotFound.vue'
+
+// Guards
 const requireAuth = (to, from, next) => {
-  const isAuthenticated = localStorage.getItem('auth') === 'true';
-  if (!isAuthenticated) {
-    next('/login');
-  } else {
-    next();
-  }
-};
+  const isAuthenticated = localStorage.getItem('auth') === 'true'
+  if (!isAuthenticated) next('/login')
+  else next()
+}
 
 const requireAdminAuth = (to, from, next) => {
-  const isAdmin = localStorage.getItem('isAdminAuthenticated') === 'true';
-  if (!isAdmin) {
-    next('/admin/auth/login');
-  } else {
-    next();
-  }
-};
+  const isAdmin = localStorage.getItem('isAdminAuthenticated') === 'true'
+  if (!isAdmin) next('/admin/auth/login')
+  else next()
+}
 
 export default createRouter({
   history: createWebHistory(),
   routes: [
-    // Route publique
+    { path: '/', component: HomePage },
     { path: '/login', component: LoginPage },
 
-    // Routes par organisation
     {
-      path: '/:orgSlug', // ← slug dynamique
-      // component: OrderPage, // ou un layout parent si tu en as un
+      path: '/:orgSlug',
+      component: OrganizationLayout,
       children: [
-        { path: '', component: OrderPage }, // page principale de commande
+        { path: '', component: OrderPage },
         { path: 'categories', component: CategoriesPage },
         { path: 'summary', component: OrderSummary },
         { path: 'summary/today', component: SalesSummaryPage },
@@ -49,9 +51,9 @@ export default createRouter({
       ]
     },
 
-    // Routes admin globales
     { path: '/admin/auth/login', component: AdminLoginPage },
     { path: '/admin/organizations', component: AdminOrganizations, beforeEnter: requireAdminAuth },
-  ]
-});
 
+    { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound },
+  ]
+})
