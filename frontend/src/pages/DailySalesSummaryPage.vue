@@ -1,6 +1,16 @@
 <template>
   <div class="max-w-3xl mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">{{ orgStore.organizationName }}</h1>
+    <!-- Titre + bouton alignés -->
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">{{ orgStore.organizationName }}</h1>
+      <button
+        @click="downloadDailySummary"
+        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+      >
+        Exporter les commandes
+      </button>
+    </div>
+
     <h2 class="text-2xl font-bold mb-6">📅 Résumé des ventes jour par jour</h2>
 
     <div v-for="daySummary in dailySummary" :key="daySummary.day" class="mb-10">
@@ -47,7 +57,6 @@ const orgStore = useOrganizationStore()
 
 const dailySummary = ref([]);
 
-// --- Fonction utilitaire pour ajouter l'auth à toutes les requêtes ---
 function getAuthHeaders() {
   if (!orgStore.organization) return {}
   return {
@@ -57,6 +66,10 @@ function getAuthHeaders() {
       slug: orgStore.organization.slug,
     }),
   }
+}
+
+function downloadDailySummary() {
+  window.open(`/api/${orgSlug}/summary/daily/export`, '_blank');
 }
 
 onMounted(async () => {

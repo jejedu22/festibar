@@ -5,7 +5,6 @@ import OrganizationLayout from './layouts/OrganizationLayout.vue'
 import OrderPage from './pages/OrderPage.vue'
 import CategoriesPage from './pages/CategoriesPage.vue'
 import OrderSummary from './pages/OrderSummary.vue'
-import SalesSummaryPage from './pages/SalesSummaryPage.vue'
 import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue'
 import AdminPage from './pages/AdminPage.vue'
 import LoginPage from './pages/LoginPage.vue'
@@ -44,7 +43,6 @@ export default createRouter({
         { path: '', component: OrderPage },
         { path: 'categories', component: CategoriesPage },
         { path: 'summary', component: OrderSummary },
-        { path: 'summary/today', component: SalesSummaryPage },
         { path: 'summary/daily', component: DailySalesSummaryPage },
         { path: 'admin', component: AdminPage },
         { path: 'login', component: LoginPage },
