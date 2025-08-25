@@ -1,7 +1,7 @@
 <!-- frontend/src/pages/OrderPage.vue -->
 <template>
   <div class="max-w-md mx-auto p-4">
-    <div class="sticky top-0 bg-white z-10 p-2 border-b">
+    <div class="sticky top-0 bg-white z-10 mb-6 border-b">
       <h1 class="text-2xl font-bold mb-4">🎪 {{ orgStore.organizationName }}</h1>
       <div class="mt-4 text-lg font-semibold">Total: €{{ total.toFixed(2) }}</div>
     </div>
@@ -14,6 +14,7 @@
       <button
         @click="toggleCategory(category.id)"
         class="w-full text-left text-xl font-semibold mb-2 border-b pb-1 flex justify-between items-center"
+        style="line-height: 2rem;"
       >
         {{ category.name }}
         <span class="text-lg">{{ expanded[category.id] ? '➖' : '➕' }}</span>
