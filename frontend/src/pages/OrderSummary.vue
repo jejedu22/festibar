@@ -1,3 +1,4 @@
+<!-- frontend/src/pages/OrderSummary.vue -->
 <template>
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-2xl font-bold mb-6">{{ orgStore.organizationName }}</h1>
@@ -24,7 +25,7 @@
           id="received"
           type="number"
           v-model.number="received"
-          class="w-full border rounded px-2 py-1"
+          class="w-full border rounded px-3 py-2 text-lg"
           min="0"
           step="0.01"
         />

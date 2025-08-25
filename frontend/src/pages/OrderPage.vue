@@ -1,8 +1,10 @@
 <!-- frontend/src/pages/OrderPage.vue -->
 <template>
   <div class="max-w-md mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-4">🎪 {{ orgStore.organizationName }}</h1>
-    <div class="mt-4 text-lg">Total: €{{ total.toFixed(2) }}</div>
+    <div class="sticky top-0 bg-white z-10 p-2 border-b">
+      <h1 class="text-2xl font-bold mb-4">🎪 {{ orgStore.organizationName }}</h1>
+      <div class="mt-4 text-lg font-semibold">Total: €{{ total.toFixed(2) }}</div>
+    </div>
 
     <div
       v-for="category in categoriesWithProducts"
