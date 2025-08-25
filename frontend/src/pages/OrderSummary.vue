@@ -2,7 +2,7 @@
 <template>
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-2xl font-bold mb-6">{{ orgStore.organizationName }}</h1>
-    <h2 class="text-2xl font-bold mb-4">🧾 Récapitulatif de la commande</h2>
+    <h2 class="text-2xl font-bold mb-4">🧾 Commande n°: {{ orderId }}</h2>
 
     <div v-if="items.length">
       <div
@@ -76,6 +76,7 @@ const orgStore = useOrganizationStore();
 const items = ref([]);
 const total = ref(0);
 const received = ref(null); // argent reçu
+const orderId = ref(null);
 
 // Différence calculée
 const difference = computed(() => {
@@ -84,23 +85,23 @@ const difference = computed(() => {
 });
 
 onMounted(async () => {
-  const orderId = route.query.orderId;
-  if (!orderId) return;
+  orderId.value = route.query.orderId; // <- Récupération de l'ID
 
-  const res = await fetch(`/api/${orgSlug}/orders/${orderId}`);
+  if (!orderId.value) return;
+
+  const res = await fetch(`/api/${orgSlug}/orders/${orderId.value}`);
   const data = await res.json();
   items.value = data.items;
   total.value = data.total;
 });
 
 async function cancelOrder() {
-  const orderId = route.query.orderId;
-  if (!orderId) return;
+  if (!orderId.value) return;
 
   const confirmCancel = confirm('Es-tu sûr de vouloir annuler cette commande ?');
   if (!confirmCancel) return;
 
-  const res = await fetch(`/api/${orgSlug}/orders/${orderId}`, {
+  const res = await fetch(`/api/${orgSlug}/orders/${orderId.value}`, {
     method: 'DELETE',
   });
 

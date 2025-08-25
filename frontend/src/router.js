@@ -8,6 +8,7 @@ import OrderSummary from './pages/OrderSummary.vue'
 import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue'
 import AdminPage from './pages/AdminPage.vue'
 import LoginPage from './pages/LoginPage.vue'
+import AdminOrdersPage from './pages/AdminOrdersPage.vue'
 
 // Pages admin global
 import AdminOrganizations from './views/AdminOrganizations.vue'
@@ -46,6 +47,7 @@ export default createRouter({
         { path: 'summary/daily', component: DailySalesSummaryPage },
         { path: 'admin', component: AdminPage },
         { path: 'login', component: LoginPage },
+        { path: 'admin/orders', component: AdminOrdersPage }
       ]
     },
 

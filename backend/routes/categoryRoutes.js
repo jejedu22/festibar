@@ -9,6 +9,7 @@ router.use(withOrganization);
 
 router.get('/', categoryController.getAll);
 router.post('/', userAuth, categoryController.create);
+router.put('/:id', userAuth, categoryController.update);
 router.delete('/:id', userAuth, categoryController.remove);
 
 module.exports = router;

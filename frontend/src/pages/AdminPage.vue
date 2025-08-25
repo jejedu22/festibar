@@ -20,6 +20,9 @@
       <router-link :to="`/${orgSlug}/summary/daily`" class="text-sm text-gray-500 hover:underline">
         💰 Total des ventes
       </router-link>
+      <router-link :to="`/${orgSlug}/admin/orders`" class="text-sm text-gray-500 hover:underline">
+        📦 Commandes
+      </router-link>
       <router-link :to="`/${orgSlug}/`" class="text-sm text-gray-500 hover:underline">
         ⬅ Retour
       </router-link>

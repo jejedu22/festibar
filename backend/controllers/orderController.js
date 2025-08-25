@@ -123,3 +123,88 @@ exports.clearAll = (req, res) => {
     );
   });
 };
+
+// Récupérer toutes les commandes d’une orga, groupées par jour
+exports.getAll = (req, res) => {
+  const orgId = req.organizationId;
+
+  const query = `
+    SELECT o.id as orderId, o.timestamp, o.total,
+           p.id as productId, p.name as productName, oi.quantity, oi.price
+    FROM orders o
+    JOIN order_items oi ON o.id = oi.order_id
+    JOIN products p ON oi.product_id = p.id
+    WHERE o.organization_id = ?
+    ORDER BY o.timestamp DESC
+  `;
+
+  db.all(query, [orgId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    // Regrouper par jour puis par commande
+    const result = {};
+    rows.forEach(r => {
+      const day = r.timestamp.split(' ')[0]; // YYYY-MM-DD
+      if (!result[day]) result[day] = {};
+
+      if (!result[day][r.orderId]) {
+        result[day][r.orderId] = {
+          orderId: r.orderId,
+          timestamp: r.timestamp,
+          total: r.total,
+          items: []
+        };
+      }
+
+      result[day][r.orderId].items.push({
+        productId: r.productId,
+        productName: r.productName,
+        quantity: r.quantity,
+        price: r.price
+      });
+    });
+
+    res.json(result);
+  });
+};
+
+// Supprimer une ligne d’une commande et renvoyer le total mis à jour
+exports.removeItem = (req, res) => {
+  const orgId = req.organizationId;
+  const { orderId, productId } = req.params;
+
+  db.serialize(() => {
+    // Supprimer la ligne
+    db.run(
+      `DELETE FROM order_items 
+       WHERE order_id = ? 
+         AND product_id = ? 
+         AND order_id IN (SELECT id FROM orders WHERE organization_id = ?)`,
+      [orderId, productId, orgId],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Recalculer le total
+        db.get(
+          `SELECT SUM(price * quantity) as total FROM order_items WHERE order_id = ?`,
+          [orderId],
+          (err2, row) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+
+            const newTotal = row.total || 0;
+
+            // Mettre à jour la table orders
+            db.run(
+              `UPDATE orders SET total = ? WHERE id = ? AND organization_id = ?`,
+              [newTotal, orderId, orgId],
+              function (err3) {
+                if (err3) return res.status(500).json({ error: err3.message });
+                res.json({ deleted: this.changes, total: newTotal });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
+};

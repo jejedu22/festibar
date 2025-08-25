@@ -48,3 +48,19 @@ exports.remove = (req, res) => {
     }
   );
 };
+
+exports.update = (req, res) => {
+  const orgId = req.organizationId;
+  const { name } = req.body;
+
+  db.run(
+    `UPDATE categories
+     SET name = ?
+     WHERE id = ? AND organization_id = ?`,
+    [name, req.params.id, orgId],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ updated: this.changes });
+    }
+  );
+};
