@@ -12,4 +12,6 @@ router.use('/:orgSlug/login', require('./authRoutes'));
 // Routes globales (admin)
 router.use('/admin/auth', require('./adminAuthRoutes'));
 router.use('/admin/organizations', require('./organizationRoutes'));
+router.use('/contact', require('./contactRoutes'));
+
 module.exports = router;

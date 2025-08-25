@@ -3,6 +3,9 @@ const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./bar.db');
 
 db.serialize(() => {
+  // Activer les clés étrangères
+  db.run('PRAGMA foreign_keys = ON');
+
   db.run(`CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -45,6 +48,18 @@ db.serialize(() => {
     UNIQUE(organization_id, name),
     FOREIGN KEY(organization_id) REFERENCES organizations(id)
   )`);
+
+  // --- Nouvelle table pour les demandes de contact / accès ---
+  db.run(`CREATE TABLE IF NOT EXISTS contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Index utile pour lister par date
+  db.run(`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at)`);
 });
 
 module.exports = db;
