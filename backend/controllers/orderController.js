@@ -19,7 +19,7 @@ exports.create = (req, res) => {
 
         if (product) {
           total += product.price * item.quantity;
-          orderItems.push({ productId: item.productId, quantity: item.quantity });
+          orderItems.push({ productId: item.productId, quantity: item.quantity, price: product.price });
         }
         count++;
 
@@ -33,11 +33,11 @@ exports.create = (req, res) => {
 
                 const orderId = this.lastID;
                 const itemStmt = db.prepare(
-                  `INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)`
+                  `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`
                 );
 
                 orderItems.forEach(item => {
-                  itemStmt.run(orderId, item.productId, item.quantity);
+                  itemStmt.run(orderId, item.productId, item.quantity, item.price);
                 });
                 itemStmt.finalize();
 
@@ -56,10 +56,10 @@ exports.getOne = (req, res) => {
   const orderId = req.params.id;
 
   const query = `
-    SELECT p.name, p.price, oi.quantity
+    SELECT p.name, oi.price, oi.quantity
     FROM order_items oi
-    JOIN products p ON oi.product_id = p.id
     JOIN orders o ON oi.order_id = o.id
+    JOIN products p ON oi.product_id = p.id
     WHERE oi.order_id = ? AND o.organization_id = ?
   `;
   db.all(query, [orderId, orgId], (err, items) => {

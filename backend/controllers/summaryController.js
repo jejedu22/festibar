@@ -1,12 +1,11 @@
-// backend/controllers/summaryController.js
 const db = require('../config/database');
 
 exports.today = (req, res) => {
   const orgId = req.organizationId;
   const query = `
-    SELECT p.id, p.name, p.price,
+    SELECT p.id, p.name, oi.price,
            SUM(oi.quantity) AS total_quantity,
-           SUM(oi.quantity * p.price) AS total_amount
+           SUM(oi.quantity * oi.price) AS total_amount
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     JOIN products p ON oi.product_id = p.id
@@ -23,9 +22,9 @@ exports.today = (req, res) => {
 exports.daily = (req, res) => {
   const orgId = req.organizationId;
   const query = `
-    SELECT date(o.timestamp) AS day, p.id, p.name, p.price,
+    SELECT date(o.timestamp) AS day, p.id, p.name, oi.price,
            SUM(oi.quantity) AS total_quantity,
-           SUM(oi.quantity * p.price) AS total_amount
+           SUM(oi.quantity * oi.price) AS total_amount
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     JOIN products p ON oi.product_id = p.id
