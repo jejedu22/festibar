@@ -1,4 +1,3 @@
-<!-- frontend/src/views/AdminOrganizations.vue -->
 <template>
   <div class="relative max-w-md mx-auto p-4">
     <!-- Bouton de déconnexion -->
@@ -24,6 +23,7 @@
       />
       <input
         v-model="form.slug"
+        @input="onSlugInput"
         placeholder="Slug (identifiant unique)"
         class="w-full p-2 border rounded"
         required
@@ -73,7 +73,6 @@
         </div>
       </div>
 
-      <!-- Message vide -->
       <p v-if="organizations.length === 0" class="text-gray-400 italic text-center mt-4">
         Aucune organisation enregistrée.
       </p>
@@ -82,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -91,6 +90,8 @@ const loading = ref(true)
 const error = ref(null)
 
 const nameInput = ref(null)
+const slugManuallyEdited = ref(false) // pour savoir si l'utilisateur a modifié le slug
+
 const form = reactive({
   id: null,
   name: '',
@@ -98,10 +99,36 @@ const form = reactive({
   password: '',
 })
 
-function reset() {
-  Object.assign(form, { id: null, name: '', slug: '', password: '' })
+// --- Fonction utilitaire pour générer un slug ---
+function generateSlug(str) {
+  return str
+    .normalize('NFD')                  // décompose les caractères accentués
+    .replace(/[\u0300-\u036f]/g, '')  // supprime les accents
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')             // remplace les espaces par des tirets
+    .replace(/[^\w-]/g, '')           // supprime les caractères spéciaux
 }
 
+// --- Surveille les changements du nom ---
+watch(() => form.name, (newName) => {
+  if (!slugManuallyEdited.value) {
+    form.slug = generateSlug(newName)
+  }
+})
+
+// --- Détecte si l'utilisateur modifie manuellement le slug ---
+function onSlugInput() {
+  slugManuallyEdited.value = true
+}
+
+// --- Réinitialise le formulaire ---
+function reset() {
+  Object.assign(form, { id: null, name: '', slug: '', password: '' })
+  slugManuallyEdited.value = false
+}
+
+// --- Remplir le formulaire pour édition ---
 function edit(o) {
   Object.assign(form, {
     id: o.id,
@@ -109,16 +136,19 @@ function edit(o) {
     slug: o.slug,
     password: '', // on ne récupère pas le mot de passe
   })
+  slugManuallyEdited.value = true
   nextTick(() => {
     nameInput.value?.focus()
   })
 }
 
+// --- Supprimer organisation ---
 async function del(id) {
   await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE' })
   await loadOrganizations()
 }
 
+// --- Ajouter / modifier organisation ---
 async function save() {
   const method = form.id ? 'PUT' : 'POST'
   const url = form.id
@@ -140,12 +170,8 @@ async function save() {
   await loadOrganizations()
 }
 
+// --- Charger organisations ---
 async function loadOrganizations() {
-  const res = await fetch(`/api/admin/organizations`, {
-    headers: {
-      'x-admin-password': import.meta.env.VITE_ADMIN_PASSWORD
-    }
-  })
   try {
     loading.value = true
     const res = await fetch('/api/admin/organizations')
@@ -158,16 +184,17 @@ async function loadOrganizations() {
   }
 }
 
+// --- Navigation vers l'organisation ---
 function goToOrg(org) {
   router.push(`/${org.slug}/admin`)
 }
 
+// --- Déconnexion ---
 function logout() {
   localStorage.removeItem('auth')
   localStorage.removeItem('isAdminAuthenticated')
   router.push({ path: '/' })
 }
-
 
 onMounted(loadOrganizations)
 </script>
