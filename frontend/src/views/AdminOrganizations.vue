@@ -164,8 +164,10 @@ function goToOrg(org) {
 
 function logout() {
   localStorage.removeItem('auth')
-  router.push('/')
+  localStorage.removeItem('isAdminAuthenticated')
+  router.push({ path: '/' })
 }
+
 
 onMounted(loadOrganizations)
 </script>
