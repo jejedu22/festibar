@@ -36,12 +36,24 @@ exports.create = (req, res) => {
                   `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`
                 );
 
+                let inserted = 0;
                 orderItems.forEach(item => {
-                  itemStmt.run(orderId, item.productId, item.quantity, item.price);
-                });
-                itemStmt.finalize();
+                  itemStmt.run(orderId, item.productId, item.quantity, item.price, (err3) => {
+                    if (err3) console.error(err3);
+                    inserted++;
 
-                res.json({ orderId, total });
+                    // Quand toutes les lignes sont insérées → on répond
+                    if (inserted === orderItems.length) {
+                      itemStmt.finalize();
+                      res.json({ orderId, total });
+                    }
+                  });
+                });
+
+                // Cas particulier : si aucun produit valide
+                if (orderItems.length === 0) {
+                  res.json({ orderId, total });
+                }
               }
             );
           });
