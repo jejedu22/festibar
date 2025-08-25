@@ -1,3 +1,4 @@
+<!-- frontend/src/pages/AdminPage.vue -->
 <template>
   <div class="relative max-w-md mx-auto p-4">
     <!-- Bouton de déconnexion -->
@@ -11,9 +12,18 @@
     <h1 class="text-xl font-bold mb-4">{{ orgStore.organizationName }}</h1>
     <h2 class="text-xl font-bold mb-4">🛠️ Admin - Produits</h2>
 
-    <router-link :to="`/${orgSlug}/categories`" class="block text-center mt-4 text-sm text-gray-500">📂 Categories</router-link>
-    <router-link :to="`/${orgSlug}/summary/daily`" class="block text-center mt-4 text-sm text-gray-500">💰 Total des ventes</router-link>
-    <router-link :to="`/${orgSlug}/`" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
+    <!-- Liens sur une seule ligne -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <router-link :to="`/${orgSlug}/categories`" class="text-sm text-gray-500 hover:underline">
+        📂 Catégories
+      </router-link>
+      <router-link :to="`/${orgSlug}/summary/daily`" class="text-sm text-gray-500 hover:underline">
+        💰 Total des ventes
+      </router-link>
+      <router-link :to="`/${orgSlug}/`" class="text-sm text-gray-500 hover:underline">
+        ⬅ Retour
+      </router-link>
+    </div>
 
     <!-- Formulaire produit -->
     <form @submit.prevent="save" class="mt-4 space-y-2">
@@ -24,14 +34,18 @@
         class="w-full p-2 border rounded" 
         required 
       />
-      <input
-        v-model.number="form.price"
-        placeholder="Prix (€)"
-        type="number"
-        step="0.01"
-        class="w-full p-2 border rounded"
-        required
-      />
+      <!-- Prix avec label à côté -->
+      <div class="flex items-center space-x-2">
+        <label class="font-medium">Prix (€)</label>
+        <input
+          v-model.number="form.price"
+          placeholder="0.00"
+          type="number"
+          step="0.01"
+          class="flex-1 p-2 border rounded"
+          required
+        />
+      </div>
       <select v-model="form.category_id" class="w-full p-2 border rounded">
         <option :value="null">-- Choisir une catégorie --</option>
         <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -78,13 +92,6 @@
       </div>
     </div>
 
-    <!-- Bouton supprimer toutes les commandes -->
-    <button
-      @click="confirmDeleteOrders"
-      class="w-full mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-    >
-      Supprimer toutes les commandes
-    </button>
   </div>
 </template>
 
@@ -170,26 +177,6 @@ async function loadProducts() {
 async function loadCategories() {
   const res = await fetch(`/api/${orgSlug}/categories`)
   categories.value = await res.json()
-}
-
-// --- Gestion commandes ---
-async function deleteAllOrders() {
-  const res = await fetch(`/api/${orgSlug}/orders`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
-  })
-  if (res.ok) {
-    alert('Toutes les commandes ont été supprimées.')
-  } else {
-    const data = await res.json()
-    alert('Erreur : ' + (data.error || 'Impossible de supprimer les commandes.'))
-  }
-}
-
-function confirmDeleteOrders() {
-  if (confirm('Es-tu sûr de vouloir supprimer **toutes** les commandes ? Cette action est irréversible.')) {
-    deleteAllOrders()
-  }
 }
 
 // --- Logout ---
