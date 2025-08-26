@@ -3,7 +3,9 @@
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-xl font-bold mb-4">{{ orgStore.organizationName }}</h1>
     <h2 class="text-xl font-bold mb-4">📂 Catégories</h2>
-
+    <router-link :to="`/${orgSlug}/admin`" class="block mt-6 text-blue-600 hover:underline">
+      ⬅ Retour à l'administration
+    </router-link>
     <!-- Liste draggable avec dnd-kit -->
     <div>
       <div
@@ -39,8 +41,6 @@
         ✖ Annuler
       </button>
     </form>
-
-    <router-link :to="`/${orgSlug}/admin`" class="block text-center mt-4 text-sm text-gray-500">⬅ Retour</router-link>
   </div>
 </template>
 

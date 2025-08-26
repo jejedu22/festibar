@@ -4,7 +4,6 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
       <!-- Titre -->
       <h1 class="text-2xl font-bold">{{ orgStore.organizationName }}</h1>
-
       <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
         <!-- Bouton exporter -->
         <button
@@ -23,6 +22,9 @@
         </button>
       </div>
     </div>
+    <router-link :to="`/${orgSlug}/admin`" class="block mt-6 text-blue-600 hover:underline">
+      ⬅ Retour à l'administration
+    </router-link>
     <h2 class="text-2xl font-bold mb-6">📅 Résumé des ventes jour par jour</h2>
 
     <div v-for="daySummary in dailySummary" :key="daySummary.day" class="mb-10">
@@ -51,10 +53,6 @@
         Total global : €{{ daySummary.total.toFixed(2) }}
       </div>
     </div>
-
-    <router-link :to="`/${orgSlug}/admin`" class="block mt-6 text-blue-600 hover:underline">
-      ⬅ Retour à l'administration
-    </router-link>
   </div>
 </template>
 

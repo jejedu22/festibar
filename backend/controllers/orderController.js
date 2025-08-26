@@ -135,33 +135,41 @@ exports.getAll = (req, res) => {
     JOIN order_items oi ON o.id = oi.order_id
     JOIN products p ON oi.product_id = p.id
     WHERE o.organization_id = ?
-    ORDER BY o.timestamp DESC
+    ORDER BY o.id DESC
   `;
 
   db.all(query, [orgId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    // Regrouper par jour puis par commande
     const result = {};
-    rows.forEach(r => {
-      const day = r.timestamp.split(' ')[0]; // YYYY-MM-DD
-      if (!result[day]) result[day] = {};
 
-      if (!result[day][r.orderId]) {
-        result[day][r.orderId] = {
+    rows.forEach(r => {
+      const day = r.timestamp.split(" ")[0]; // YYYY-MM-DD
+      if (!result[day]) result[day] = [];
+
+      // Trouver si la commande existe déjà dans le tableau
+      let order = result[day].find(o => o.orderId === r.orderId);
+      if (!order) {
+        order = {
           orderId: r.orderId,
           timestamp: r.timestamp,
           total: r.total,
           items: []
         };
+        result[day].push(order);
       }
 
-      result[day][r.orderId].items.push({
+      order.items.push({
         productId: r.productId,
         productName: r.productName,
         quantity: r.quantity,
         price: r.price
       });
+    });
+
+    // Tri des commandes de chaque jour par orderId décroissant
+    Object.keys(result).forEach(day => {
+      result[day].sort((a, b) => b.orderId - a.orderId);
     });
 
     res.json(result);
