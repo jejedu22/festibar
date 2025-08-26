@@ -17,6 +17,7 @@
           class="cursor-grab mr-2 select-none"
           title="Déplacer"
           @mousedown="startDrag(category.id, $event)"
+          @touchstart="startDrag(category.id, $event)"
         >
           ☰
         </span>
@@ -86,6 +87,8 @@ function startDrag(id) {
   draggingId.value = id
   document.onmouseup = stopDrag
   document.onmousemove = onDrag
+  document.ontouchend = stopDrag
+  document.ontouchmove = onDrag
 }
 
 function onDrag(e) {
@@ -93,14 +96,19 @@ function onDrag(e) {
   if (dragIndex === -1) return
 
   const element = categories.value[dragIndex]
-  const mouseY = e.clientY
+  let clientY
 
-  // Trouver l'index à déplacer
+  if (e.type.startsWith("touch")) {
+    clientY = e.touches[0].clientY
+  } else {
+    clientY = e.clientY
+  }
+
   let newIndex = dragIndex
   for (let i = 0; i < categories.value.length; i++) {
-    const el = document.querySelectorAll('.cursor-move')[i]
+    const el = document.querySelectorAll(".cursor-grab")[i].parentElement
     const rect = el.getBoundingClientRect()
-    if (mouseY > rect.top + rect.height / 2) {
+    if (clientY > rect.top + rect.height / 2) {
       newIndex = i
     }
   }
@@ -115,6 +123,8 @@ function stopDrag() {
   draggingId.value = null
   document.onmouseup = null
   document.onmousemove = null
+  document.ontouchend = null
+  document.ontouchmove = null
   saveOrder()
 }
 
