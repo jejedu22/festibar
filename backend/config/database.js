@@ -38,6 +38,7 @@ db.serialize(() => {
     product_id INTEGER,
     quantity INTEGER,
     price REAL NOT NULL,
+    sort_order INTEGER,
     FOREIGN KEY(order_id) REFERENCES orders(id),
     FOREIGN KEY(product_id) REFERENCES products(id)
   )`);
