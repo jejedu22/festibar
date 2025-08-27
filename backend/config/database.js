@@ -6,6 +6,18 @@ db.serialize(() => {
   // Activer les clés étrangères
   db.run('PRAGMA foreign_keys = ON');
 
+  // Mode WAL → meilleur pour accès concurrents
+  db.run('PRAGMA journal_mode = WAL;');
+
+  // Cache plus grand pour réduire I/O
+  db.run('PRAGMA cache_size = 10000;');
+
+  // Synchro moins agressive → réduit latence (risque de perte en crash)
+  db.run('PRAGMA synchronous = NORMAL;');
+
+  // Indices automatiques
+  db.run('PRAGMA automatic_index = ON;');
+
   db.run(`CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
