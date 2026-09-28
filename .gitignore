@@ -30,3 +30,8 @@ bar.db
 
 # Données SQLite persistées par Docker
 data/
+
+# Secrets (utiliser backend/.env.example comme modèle)
+.env
+.env.*
+!.env.example
