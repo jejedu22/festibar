@@ -256,7 +256,8 @@ L’application est disponible sur `https://<FESTIBAR_HOST>`. Traefik obtient le
 ```bash
 docker compose ps                 # état (le conteneur doit être « healthy »)
 docker compose logs -f            # journaux de l'application
-docker compose restart            # redémarrer (après modification de backend/.env.local)
+docker compose up -d              # appliquer une modification de backend/.env.local (recrée le conteneur)
+docker compose restart            # simple redémarrage (ne relit PAS backend/.env.local)
 docker compose down               # arrêter
 ```
 
@@ -492,7 +493,7 @@ Ces textes sont une base de travail et ne remplacent pas l’avis d’un juriste
 | 404 de Traefik sur le domaine | Vérifier `FESTIBAR_HOST`, `docker compose ps` (conteneur `healthy`), et que Traefik voit le conteneur (`exposedByDefault` / label `traefik.enable`) |
 | Certificat invalide ou autosigné | DNS pas encore propagé, ports 80/443 fermés, ou resolver nommé autrement que `letsencrypt` (voir les logs de Traefik) |
 | Page blanche ou styles cassés derrière Traefik | La CSP du middleware `security-headers` remplace celle de l’application : autoriser `style-src 'self' 'unsafe-inline'` |
-| « Connexion admin désactivée » dans les logs | `ADMIN_PASSWORD_HASH` vide : générer l’empreinte et redémarrer |
+| Connexion administrateur : « Mot de passe incorrect » alors qu’il est bon, ou « non configurée » | L’empreinte a été tronquée par Docker Compose : dans `backend/.env.local`, elle doit être **entre apostrophes** (`ADMIN_PASSWORD_HASH='$2b$12$…'`), pas entre guillemets ni sans rien. Le journal (`docker compose logs festibar`) affiche « ADMIN_PASSWORD_HASH invalide » dans ce cas. Corriger puis `docker compose up -d` (un simple `restart` ne relit pas le fichier). |
 | Tout le monde est déconnecté après un redémarrage | `JWT_SECRET` non défini (un secret temporaire est généré à chaque démarrage) |
 | « Trop de tentatives » | Attendre 15 minutes. Si tous les utilisateurs sont bloqués ensemble, vérifier `TRUST_PROXY=1` (sinon, tous semblent venir de l’IP de Traefik) |
 | Heures décalées ou ventes après minuit sur le mauvais jour | Vérifier `APP_TIMEZONE` et `SERVICE_DAY_START_HOUR` |
