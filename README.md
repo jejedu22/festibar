@@ -10,43 +10,46 @@ Les serveurs saisissent les commandes sur leur téléphone (même sans réseau),
 - **Frontend** : Vue 3 + Vite + Tailwind CSS (application installable, fonctionnement hors-ligne)
 - **Backend** : Node.js + Express
 - **Base de données** : SQLite (`bar.db`), sauvegardée automatiquement
-- **Conteneurisation** : Docker & Docker Compose (prod/dev), HTTPS optionnel via Caddy
+- **Conteneurisation** : Docker & Docker Compose (prod/dev), exposé en HTTPS derrière Traefik
 
 ---
 
 ## 🛠 Mise en route
 
-### 🐳 Production (Docker)
+### 🐳 Production (Docker, derrière Traefik)
 
 Une seule image contient l'API Express **et** le frontend Vue compilé (build multi-étapes, voir `Dockerfile`).
+L'application ne publie aucun port : elle est servie en HTTPS par la stack Traefik, via le réseau Docker partagé `proxy`.
 
-1. **Configurer** les variables d'environnement (mot de passe admin, fuseau horaire, SMTP, mentions légales…) :
+**Prérequis** :
+- la stack Traefik démarrée (elle crée le réseau `proxy`, l'entrypoint `websecure`, le resolver `letsencrypt` et le middleware `security-headers@file`) ;
+- un enregistrement DNS du domaine choisi pointant vers le serveur.
+
+1. **Choisir le domaine** (fichier `.env` à la racine, lu par Docker Compose) :
+
+```bash
+cp .env.example .env   # puis FESTIBAR_HOST=bar.exemple.fr
+```
+
+2. **Configurer l'application** (mot de passe admin, fuseau horaire, SMTP, mentions légales…) :
 
 ```bash
 cp backend/.env.example backend/.env.local   # puis éditer les valeurs
 ```
 
-2. **Construire et lancer** :
+3. **Construire et lancer** :
 
 ```bash
 docker compose up -d --build
 ```
 
-3. Accéder à l'application : [http://localhost:3001](http://localhost:3001)
-   (autre port : `FESTIBAR_PORT=8080 docker compose up -d --build`)
+4. Accéder à l'application : `https://<FESTIBAR_HOST>` (certificat Let's Encrypt obtenu par Traefik).
 
 La base SQLite est persistée dans `./data/bar.db` sur l'hôte, avec des sauvegardes automatiques dans `./data/backups/`.
 Pour reprendre une base existante, copiez-la dans `./data/bar.db` avant le premier lancement (elle est migrée automatiquement).
 
-### 🔒 HTTPS (recommandé en production)
-
-Avec un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts), Caddy obtient et renouvelle automatiquement le certificat :
-
-```bash
-DOMAIN=bar.exemple.fr docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
-```
-
-Le HTTPS est aussi nécessaire pour que l'application soit installable et se recharge sans réseau (service worker).
+`TRUST_PROXY=1` est défini dans `docker-compose.yml` : l'application lit la vraie IP des clients transmise par Traefik (limitation des tentatives de connexion).
+Le HTTPS est aussi ce qui permet d'installer l'application et de la recharger sans réseau (service worker).
 
 Commandes utiles :
 
@@ -89,8 +92,8 @@ npm run dev
 │   └── public/               # Manifest, icône, service worker
 ├── data/                     # Base SQLite et sauvegardes (créé au lancement Docker)
 ├── Dockerfile                # Image de production multi-étapes
-├── docker-compose.yml        # Production
-├── docker-compose.https.yml  # Option HTTPS (Caddy)
+├── docker-compose.yml        # Production (derrière Traefik)
+├── .env.example              # Domaine (FESTIBAR_HOST) pour docker-compose.yml
 ├── docker-compose.dev.yml    # Développement
 └── README.md
 ```

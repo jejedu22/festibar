@@ -1,4 +1,5 @@
-# Production : une seule image (API Express + frontend compilé)
+# Production derrière Traefik (stack Traefik séparée, réseau partagé « proxy »)
+# Prérequis : la stack Traefik est démarrée et FESTIBAR_HOST est défini dans ./.env
 # Lancement : docker compose up -d --build
 services:
   festibar:
@@ -6,8 +7,7 @@ services:
     image: festibar:latest
     container_name: festibar
     restart: unless-stopped
-    ports:
-      - "${FESTIBAR_PORT:-3001}:3001"
+    # Pas de port publié : l'application n'est joignable qu'à travers Traefik
     env_file:
       - path: ./backend/.env
         required: false
@@ -16,6 +16,23 @@ services:
     environment:
       PORT: 3001
       SQLITE_FILE: /app/data/bar.db
+      # Traefik est le seul proxy devant l'application : vraie IP client pour les limites de tentatives
+      TRUST_PROXY: 1
+      ENABLE_HSTS: "true"
     volumes:
       # Base SQLite et sauvegardes automatiques persistées sur l'hôte (./data/bar.db, ./data/backups/)
       - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.festibar.rule=Host(`${FESTIBAR_HOST:?Définir FESTIBAR_HOST dans .env, ex. FESTIBAR_HOST=bar.exemple.fr}`)
+      - traefik.http.routers.festibar.entrypoints=websecure
+      - traefik.http.routers.festibar.tls.certresolver=letsencrypt
+      - traefik.http.routers.festibar.middlewares=security-headers@file
+      - traefik.http.services.festibar.loadbalancer.server.port=3001
+
+networks:
+  proxy:
+    external: true    # réseau créé par la stack Traefik
