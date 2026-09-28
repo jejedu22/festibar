@@ -1,6 +1,6 @@
 // backend/config/database.js
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./bar.db');
+const db = new sqlite3.Database(process.env.SQLITE_FILE || './bar.db');
 
 db.serialize(() => {
   // Activer les clés étrangères

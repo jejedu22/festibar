@@ -1,0 +1,23 @@
+**/node_modules
+**/dist
+**/*.log
+.git
+.gitignore
+.vscode
+.idea
+**/.DS_Store
+
+# Données et secrets : jamais dans l'image
+data
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/.env
+**/.env.*
+!**/.env.example
+
+# Le frontend est recompilé dans l'image
+backend/public
+
+Dockerfile
+docker-compose*.yml

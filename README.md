@@ -1,7 +1,4 @@
-from pathlib import Path
-
-# Contenu du README proposé
-readme_content = """# Festibar – Gestion des commandes pour un bar de festival
+# Festibar – Gestion des commandes pour un bar de festival
 
 Festibar est une application web simple conçue pour gérer de manière efficace les commandes d’un bar lors d’un festival.  
 Elle inclut une interface utilisateur fluide pour passer des commandes et un espace administrateur pour gérer les produits, catégories ainsi que les statistiques de vente.
@@ -19,18 +16,50 @@ Elle inclut une interface utilisateur fluide pour passer des commandes et un esp
 
 ## 🛠 Mise en route
 
-### 🐳 Via Docker
+### 🐳 Production (Docker)
 
-1. **Construire et lancer** les conteneurs :
+Une seule image contient l'API Express **et** le frontend Vue compilé (build multi-étapes, voir `Dockerfile`).
+
+1. **Configurer** les variables d'environnement (mot de passe admin, SMTP…) :
 
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+cp backend/.env.example backend/.env.local   # puis éditer les valeurs
 ```
 
-2. Accéder à l'application :
+2. **Construire et lancer** :
 
-   * Frontend : [http://localhost:8001](http://localhost:8001)
-   * Backend API : [http://localhost:3001](http://localhost:3001)
+```bash
+docker compose up -d --build
+```
+
+3. Accéder à l'application : [http://localhost:3001](http://localhost:3001)  
+   (autre port : `FESTIBAR_PORT=8080 docker compose up -d --build`)
+
+La base SQLite est persistée dans `./data/bar.db` sur l'hôte.  
+Pour reprendre une base existante, copiez-la dans `./data/bar.db` avant le premier lancement.
+
+Commandes utiles :
+
+```bash
+docker compose logs -f            # logs
+docker compose down               # arrêt
+docker compose up -d --build      # mise à jour après un git pull
+```
+
+### 🧑‍💻 Développement (Docker, rechargement à chaud)
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+- Frontend (Vite) : [http://localhost:8001](http://localhost:8001)
+- Backend API (nodemon) : [http://localhost:3001](http://localhost:3001)
+
+### Sans Docker
+
+```bash
+npm run dev
+```
 
 ---
 
@@ -43,14 +72,17 @@ docker-compose -f docker-compose.prod.yml up --build
 ├── frontend/             # App Vue 3
 │   ├── src/
 │   └── public/
-├── docker-compose.prod.yml
+├── data/                 # Base SQLite (créée au lancement Docker)
+├── Dockerfile            # Image de production multi-étapes
+├── docker-compose.yml    # Production
+├── docker-compose.dev.yml # Développement
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-##✨ Fonctionnalités
+## ✨ Fonctionnalités
 
 ### Côté client (prise de commandes)
 
@@ -89,7 +121,7 @@ docker-compose -f docker-compose.prod.yml up --build
 
 ## 🐛 Débogage & Tests
 - Utiliser console.log() + DevTools Vue
-- Supprimer bar.db pour repartir d’une base vide
+- Supprimer `data/bar.db` pour repartir d’une base vide
 
 ---
 
