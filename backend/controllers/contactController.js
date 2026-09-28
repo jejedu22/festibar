@@ -44,7 +44,7 @@ exports.createContact = async (req, res) => {
   limiter.hit(req.ip);
 
   try {
-    await db.runAsync(`INSERT INTO contacts (name, email, message) VALUES (?, ?, ?)`, [data.name, data.email, data.message]);
+    await db.runAsync(`INSERT INTO contacts (name, email, message, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`, [data.name, data.email, data.message]);
   } catch (err) {
     return serverError(res, err);
   }
