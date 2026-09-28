@@ -1,0 +1,28 @@
+# HTTPS automatique (Let's Encrypt) avec Caddy devant Festibar.
+# Prérequis : un nom de domaine pointant vers le serveur, ports 80 et 443 ouverts.
+# Lancement : DOMAIN=bar.exemple.fr docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+services:
+  festibar:
+    ports: !reset []
+    environment:
+      TRUST_PROXY: 1
+      ENABLE_HSTS: "true"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Définir DOMAIN, ex. DOMAIN=bar.exemple.fr}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - festibar
+
+volumes:
+  caddy_data:
+  caddy_config:

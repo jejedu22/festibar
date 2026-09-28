@@ -1,101 +1,121 @@
 // backend/controllers/organizationController.js
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
+const { serverError } = require('../utils/http');
+const { MIN_PASSWORD_LENGTH } = require('../config/auth');
 
-// --- Liste des organisations ---
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// Slugs qui entreraient en conflit avec les routes de l'application
+const RESERVED_SLUGS = ['admin', 'api', 'login', 'assets', 'mentions-legales', 'confidentialite', 'cgu', 'legal', 'config', 'contact', 'organizations'];
+
+function validate({ name, slug, password, staff_password }, { requirePassword }) {
+  if (typeof name !== 'string' || !name.trim() || name.length > 100) return 'Nom requis (100 caractères maximum)';
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.length > 60) {
+    return 'Slug invalide (minuscules, chiffres et tirets)';
+  }
+  if (RESERVED_SLUGS.includes(slug)) return 'Ce slug est réservé';
+  if ((requirePassword || password) && (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH)) {
+    return `Mot de passe gestionnaire : ${MIN_PASSWORD_LENGTH} caractères minimum`;
+  }
+  if (staff_password && (typeof staff_password !== 'string' || staff_password.length < MIN_PASSWORD_LENGTH)) {
+    return `Mot de passe serveurs : ${MIN_PASSWORD_LENGTH} caractères minimum`;
+  }
+  if (staff_password && staff_password === password) {
+    return 'Les mots de passe gestionnaire et serveurs doivent être différents';
+  }
+  return null;
+}
+
+function uniqueError(res, err) {
+  if (err.code === 'SQLITE_CONSTRAINT') return res.status(409).json({ error: 'Ce nom ou ce slug est déjà utilisé' });
+  serverError(res, err);
+}
+
+// --- Liste des organisations (sans les empreintes de mots de passe) ---
 exports.getAll = (req, res) => {
-  db.all('SELECT * FROM organizations', (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+  db.all(
+    'SELECT id, name, slug, staff_password IS NOT NULL AS has_staff_password FROM organizations ORDER BY name',
+    (err, rows) => {
+      if (err) return serverError(res, err);
+      res.json(rows);
+    }
+  );
 };
 
-// --- Nom d'une organisation ---
+// --- Nom d'une organisation (public) ---
 exports.getOne = (req, res) => {
-    const orgId = req.organizationId;
-    const query = `
-      SELECT o.name, o.password
-      FROM organizations o
-      WHERE o.id = ?
-    `;
-  db.get(query, [orgId], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(404).json({ error: "Organisation non trouvée" });
+  db.get(`SELECT name, slug FROM organizations WHERE id = ?`, [req.organizationId], (err, row) => {
+    if (err) return serverError(res, err);
+    if (!row) return res.status(404).json({ error: 'Organisation non trouvée' });
     res.json(row);
   });
 };
 
-exports.update = (req, res) => {
-  const { id } = req.params;
-  const { name, slug, password } = req.body;
-  if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
-
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
-  db.run(
-    `UPDATE organizations
-     SET name = ?, slug = ?, password = ?
-     WHERE id = ?`,
-    [name, slug, hashedPassword, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ updated: this.changes });
-    }
-  );
-};
-
 // --- Créer une organisation ---
-exports.create = (req, res) => {
-  const { name, slug, password } = req.body;
-  if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
+exports.create = async (req, res) => {
+  const body = req.body || {};
+  const error = validate(body, { requirePassword: true });
+  if (error) return res.status(400).json({ error });
 
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
-  db.run(
-    'INSERT INTO organizations (name, slug, password) VALUES (?, ?, ?)',
-    [name, slug, hashedPassword],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID, name, slug });
-    }
-  );
+  try {
+    const hash = await bcrypt.hash(body.password, 10);
+    const staffHash = body.staff_password ? await bcrypt.hash(body.staff_password, 10) : null;
+    const { lastID } = await db.runAsync(
+      'INSERT INTO organizations (name, slug, password, staff_password) VALUES (?, ?, ?, ?)',
+      [body.name.trim(), body.slug, hash, staffHash]
+    );
+    res.status(201).json({ id: lastID, name: body.name.trim(), slug: body.slug });
+  } catch (err) {
+    uniqueError(res, err);
+  }
 };
 
+// --- Modifier une organisation (mots de passe optionnels : conservés s'ils ne sont pas fournis) ---
+exports.update = async (req, res) => {
+  const { id } = req.params;
+  const body = req.body || {};
+  const error = validate(body, { requirePassword: false });
+  if (error) return res.status(400).json({ error });
+
+  const fields = ['name = ?', 'slug = ?'];
+  const params = [body.name.trim(), body.slug];
+  try {
+    if (body.password) {
+      fields.push('password = ?');
+      params.push(await bcrypt.hash(body.password, 10));
+    }
+    if (body.staff_password) {
+      fields.push('staff_password = ?');
+      params.push(await bcrypt.hash(body.staff_password, 10));
+    } else if (body.remove_staff_password) {
+      fields.push('staff_password = NULL');
+    }
+    params.push(id);
+
+    const { changes } = await db.runAsync(`UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`, params);
+    if (!changes) return res.status(404).json({ error: 'Organisation introuvable' });
+    res.json({ updated: changes });
+  } catch (err) {
+    uniqueError(res, err);
+  }
+};
 
 // --- Supprimer une organisation ---
-exports.delete = (req, res) => {
+exports.delete = async (req, res) => {
   const { id } = req.params;
-
-  // Optionnel : vérifier si des produits/commandes existent pour cette organisation
-  db.get(
-    'SELECT COUNT(*) AS count FROM products WHERE organization_id = ?',
-    [id],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (row.count > 0) return res.status(400).json({ error: 'Organisation utilisée par des produits' });
-
-      db.run('DELETE FROM organizations WHERE id = ?', [id], function(err2) {
-        if (err2) return res.status(500).json({ error: err2.message });
-        res.json({ deleted: this.changes });
-      });
+  try {
+    const row = await db.getAsync(
+      `SELECT (SELECT COUNT(*) FROM products WHERE organization_id = ?) +
+              (SELECT COUNT(*) FROM orders WHERE organization_id = ?) AS count`,
+      [id, id]
+    );
+    if (row.count > 0) {
+      return res.status(409).json({ error: 'Organisation utilisée par des produits ou des commandes' });
     }
-  );
-};
-
-// --- Vérifier mot de passe de l'organisation ---
-exports.login = (req, res) => {
-  const { slug, password } = req.body;
-  if (!slug || !password) return res.status(400).json({ error: 'Slug et mot de passe requis' });
-
-  const query = `SELECT id, name, password FROM organizations WHERE slug = ?`;
-  db.get(query, [slug], (err, org) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!org) return res.status(404).json({ error: 'Organisation non trouvée' });
-
-    const valid = bcrypt.compareSync(password, org.password);
-    if (!valid) return res.status(401).json({ error: 'Mot de passe incorrect' });
-
-    // Pour simplifier, on peut renvoyer l'id et le nom, ou créer un token JWT
-    res.json({ id: org.id, name: org.name });
-  });
+    await db.runAsync('DELETE FROM categories WHERE organization_id = ?', [id]);
+    const { changes } = await db.runAsync('DELETE FROM organizations WHERE id = ?', [id]);
+    res.json({ deleted: changes });
+  } catch (err) {
+    serverError(res, err);
+  }
 };

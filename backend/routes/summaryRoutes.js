@@ -2,14 +2,14 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const summaryController = require('../controllers/summaryController');
-const withOrganization = require('../middlewares/withOrganization');
 const summaryExportController = require('../controllers/summaryExportController');
-const userAuth = require('../middlewares/userAuth');
+const withOrganization = require('../middlewares/withOrganization');
+const orgAuth = require('../middlewares/orgAuth');
 
-router.use(withOrganization);
+router.use(withOrganization, orgAuth('manager'));
 
-router.get('/today', userAuth, summaryController.today);
-router.get('/daily', userAuth, summaryController.daily);
-router.get('/daily/export', withOrganization, summaryExportController.exportOrders);
+router.get('/today', summaryController.today);
+router.get('/daily', summaryController.daily);
+router.get('/daily/export', summaryExportController.exportOrders);
 
 module.exports = router;

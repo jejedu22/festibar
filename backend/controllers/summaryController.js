@@ -1,47 +1,87 @@
+// backend/controllers/summaryController.js
 const db = require('../config/database');
+const { serverError } = require('../utils/http');
+const { serviceDay } = require('../utils/time');
 
-exports.today = (req, res) => {
-  const orgId = req.organizationId;
-  const query = `
-    SELECT p.id, p.name, oi.price,
-           SUM(oi.quantity) AS total_quantity,
-           SUM(oi.quantity * oi.price) AS total_amount
-    FROM order_items oi
-    JOIN orders o ON oi.order_id = o.id
-    JOIN products p ON oi.product_id = p.id
-    WHERE date(o.timestamp) = date('now') AND o.organization_id = ?
-    GROUP BY p.id
-  `;
-  db.all(query, [orgId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const total = rows.reduce((sum, r) => sum + r.total_amount, 0);
-    res.json({ products: rows, total });
-  });
+const round2 = n => Math.round(n * 100) / 100;
+
+// Agrège les ventes par journée de service (commandes annulées exclues des totaux)
+async function computeDaily(orgId) {
+  const orders = await db.allAsync(
+    `SELECT id, timestamp, total, status, payment_method FROM orders WHERE organization_id = ?`,
+    [orgId]
+  );
+  const items = await db.allAsync(
+    `SELECT oi.order_id, p.id, p.name, oi.price, oi.quantity
+     FROM order_items oi
+     JOIN orders o ON oi.order_id = o.id
+     JOIN products p ON oi.product_id = p.id
+     WHERE o.organization_id = ? AND o.status = 'active'`,
+    [orgId]
+  );
+
+  const days = new Map();
+  const dayOfOrder = new Map();
+  const getDay = day => {
+    if (!days.has(day)) {
+      days.set(day, {
+        day, total: 0, orderCount: 0, cancelledCount: 0,
+        byPaymentMethod: { cash: 0, card: 0, other: 0 },
+        products: new Map(),
+      });
+    }
+    return days.get(day);
+  };
+
+  for (const o of orders) {
+    const d = getDay(serviceDay(o.timestamp));
+    dayOfOrder.set(o.id, d);
+    if (o.status === 'cancelled') {
+      d.cancelledCount++;
+      continue;
+    }
+    d.orderCount++;
+    d.total += o.total;
+    d.byPaymentMethod[o.payment_method] = (d.byPaymentMethod[o.payment_method] || 0) + o.total;
+  }
+
+  for (const it of items) {
+    const d = dayOfOrder.get(it.order_id);
+    const key = `${it.id}|${it.price}`; // un changement de prix donne une ligne distincte
+    const p = d.products.get(key) || { id: it.id, name: it.name, price: it.price, total_quantity: 0, total_amount: 0 };
+    p.total_quantity += it.quantity;
+    p.total_amount += it.quantity * it.price;
+    d.products.set(key, p);
+  }
+
+  return [...days.values()]
+    .map(d => ({
+      ...d,
+      total: round2(d.total),
+      byPaymentMethod: Object.fromEntries(Object.entries(d.byPaymentMethod).map(([k, v]) => [k, round2(v)])),
+      products: [...d.products.values()]
+        .map(p => ({ ...p, total_amount: round2(p.total_amount) }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    }))
+    .sort((a, b) => b.day.localeCompare(a.day));
+}
+
+exports.computeDaily = computeDaily;
+
+exports.today = async (req, res) => {
+  try {
+    const today = serviceDay(new Date());
+    const day = (await computeDaily(req.organizationId)).find(d => d.day === today);
+    res.json(day || { day: today, total: 0, orderCount: 0, cancelledCount: 0, byPaymentMethod: {}, products: [] });
+  } catch (err) {
+    serverError(res, err);
+  }
 };
 
-exports.daily = (req, res) => {
-  const orgId = req.organizationId;
-  const query = `
-    SELECT date(o.timestamp) AS day, p.id, p.name, oi.price,
-           SUM(oi.quantity) AS total_quantity,
-           SUM(oi.quantity * oi.price) AS total_amount
-    FROM order_items oi
-    JOIN orders o ON oi.order_id = o.id
-    JOIN products p ON oi.product_id = p.id
-    WHERE o.organization_id = ?
-    GROUP BY day, p.id
-    ORDER BY day DESC, p.name
-  `;
-  db.all(query, [orgId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-
-    const grouped = {};
-    rows.forEach(row => {
-      if (!grouped[row.day]) grouped[row.day] = { day: row.day, products: [], total: 0 };
-      grouped[row.day].products.push(row);
-      grouped[row.day].total += row.total_amount;
-    });
-
-    res.json(Object.values(grouped).sort((a, b) => b.day.localeCompare(a.day)));
-  });
+exports.daily = async (req, res) => {
+  try {
+    res.json(await computeDaily(req.organizationId));
+  } catch (err) {
+    serverError(res, err);
+  }
 };

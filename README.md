@@ -1,36 +1,75 @@
-from pathlib import Path
+# Festibar – Gestion des commandes pour un bar de festival
 
-# Contenu du README proposé
-readme_content = """# Festibar – Gestion des commandes pour un bar de festival
-
-Festibar est une application web simple conçue pour gérer de manière efficace les commandes d’un bar lors d’un festival.  
-Elle inclut une interface utilisateur fluide pour passer des commandes et un espace administrateur pour gérer les produits, catégories ainsi que les statistiques de vente.
+Festibar est une application web conçue pour prendre rapidement les commandes d’une buvette lors d’un festival ou d’un événement associatif.
+Les serveurs saisissent les commandes sur leur téléphone (même sans réseau), le gestionnaire gère la carte et suit les ventes.
 
 ---
 
 ## 🚀 Technologies & Architecture
 
-- **Frontend** : Vue 3 + Vite + Tailwind CSS  
-- **Backend** : Node.js + Express  
-- **Base de données** : SQLite (`bar.db`)  
-- **Conteneurisation** : Docker & Docker Compose (prod/dev)  
+- **Frontend** : Vue 3 + Vite + Tailwind CSS (application installable, fonctionnement hors-ligne)
+- **Backend** : Node.js + Express
+- **Base de données** : SQLite (`bar.db`), sauvegardée automatiquement
+- **Conteneurisation** : Docker & Docker Compose (prod/dev), HTTPS optionnel via Caddy
 
 ---
 
 ## 🛠 Mise en route
 
-### 🐳 Via Docker
+### 🐳 Production (Docker)
 
-1. **Construire et lancer** les conteneurs :
+Une seule image contient l'API Express **et** le frontend Vue compilé (build multi-étapes, voir `Dockerfile`).
+
+1. **Configurer** les variables d'environnement (mot de passe admin, fuseau horaire, SMTP, mentions légales…) :
 
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+cp backend/.env.example backend/.env.local   # puis éditer les valeurs
 ```
 
-2. Accéder à l'application :
+2. **Construire et lancer** :
 
-   * Frontend : [http://localhost:8001](http://localhost:8001)
-   * Backend API : [http://localhost:3001](http://localhost:3001)
+```bash
+docker compose up -d --build
+```
+
+3. Accéder à l'application : [http://localhost:3001](http://localhost:3001)
+   (autre port : `FESTIBAR_PORT=8080 docker compose up -d --build`)
+
+La base SQLite est persistée dans `./data/bar.db` sur l'hôte, avec des sauvegardes automatiques dans `./data/backups/`.
+Pour reprendre une base existante, copiez-la dans `./data/bar.db` avant le premier lancement (elle est migrée automatiquement).
+
+### 🔒 HTTPS (recommandé en production)
+
+Avec un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts), Caddy obtient et renouvelle automatiquement le certificat :
+
+```bash
+DOMAIN=bar.exemple.fr docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+```
+
+Le HTTPS est aussi nécessaire pour que l'application soit installable et se recharge sans réseau (service worker).
+
+Commandes utiles :
+
+```bash
+docker compose logs -f            # logs
+docker compose down               # arrêt
+docker compose up -d --build      # mise à jour après un git pull
+```
+
+### 🧑‍💻 Développement (Docker, rechargement à chaud)
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+- Frontend (Vite) : [http://localhost:8001](http://localhost:8001)
+- Backend API (nodemon) : [http://localhost:3001](http://localhost:3001)
+
+### Sans Docker
+
+```bash
+npm run dev
+```
 
 ---
 
@@ -38,68 +77,131 @@ docker-compose -f docker-compose.prod.yml up --build
 
 ```
 .
-├── backend/              # API Express + SQLite
-│   └── index.js
-├── frontend/             # App Vue 3
+├── backend/                  # API Express + SQLite
+│   ├── config/               # Base de données (schéma + migrations), authentification
+│   ├── controllers/          # Logique métier
+│   ├── middlewares/          # Authentification admin / organisation
+│   ├── routes/               # Routes /api
+│   ├── scripts/              # hash-password.js
+│   └── utils/                # Sauvegardes, journal d'audit, fuseau horaire…
+├── frontend/                 # Application Vue 3
 │   ├── src/
-│   └── public/
-├── docker-compose.prod.yml
-├── .gitignore
+│   └── public/               # Manifest, icône, service worker
+├── data/                     # Base SQLite et sauvegardes (créé au lancement Docker)
+├── Dockerfile                # Image de production multi-étapes
+├── docker-compose.yml        # Production
+├── docker-compose.https.yml  # Option HTTPS (Caddy)
+├── docker-compose.dev.yml    # Développement
 └── README.md
 ```
 
 ---
 
-##✨ Fonctionnalités
+## ✨ Fonctionnalités
 
-### Côté client (prise de commandes)
+### Prise de commande (serveurs)
 
-- Produits affichés par catégories déroulables
-- Ajout / suppression de quantités
-- Total automatiquement mis à jour
-- Finalisation de commande avec récapitulatif clair
+- Grille de gros boutons : un appui = un article, bouton « − » pour corriger
+- Raccourcis vers les catégories, produits épuisés grisés
+- Panier conservé en cas de rechargement, protection contre le double envoi
+- Choix du moyen de paiement (espèces, carte, autre)
+- Récapitulatif avec numéro de commande en grand, montants rapides (juste, 5, 10, 20, 50 €) et calcul du rendu
+- **Hors-ligne** : sans réseau, la commande est gardée sur le téléphone et envoyée automatiquement au retour de la connexion (sans doublon)
+- Écran maintenu allumé pendant le service, carte rafraîchie toutes les 30 s
+- Annulation possible par le serveur pendant 15 minutes (configurable)
 
-### Côté administrateur
+### Gestion (gestionnaire)
 
-- Gestion des produits : ajout, modification (prix), suppression
-- Gestion des catégories (suppression possible si vide)
-- Authentification simple via localStorage
-- Réinitialisation totale des commandes
+- Produits : ajout, modification, bascule « en vente / épuisé » en un appui
+- Catégories : ordre modifiable par glisser-déposer ou flèches
+- Commandes : historique par soirée, annulation (conservée et tracée), retrait de ligne
+- Ventes : totaux par soirée, par moyen de paiement, nombre d'annulations
+- Export Excel (commandes + journal des annulations/suppressions)
+- Remise à zéro protégée (export proposé, confirmation par saisie)
 
-### Ventes & statistiques
-- Vue journalière avec détails par produit (quantité vendue + montant)
-- Total global journalier
-- Bouton “vider toutes les commandes” avec confirmation
+### Administration (administrateur global)
+
+- Création des organisations, avec mot de passe gestionnaire et mot de passe serveurs
 
 ---
 
-## 🔐 Authentification
+## 🔐 Authentification et sécurité
 
-- Basée sur un flag isAuthenticated stocké dans localStorage
-- Redirection automatique si l’utilisateur n’est pas authentifié
+### Rôles
+
+| Rôle | Connexion | Accès |
+|---|---|---|
+| Administrateur | `/admin/auth/login` (`ADMIN_PASSWORD_HASH`) | Organisations |
+| Gestionnaire | `/<organisation>/login` (mot de passe gestionnaire) | Tout pour son organisation |
+| Serveur | `/<organisation>/login` (mot de passe serveurs) | Prise de commande uniquement |
+
+Chaque connexion renvoie un **jeton signé (JWT)** vérifié par le serveur à chaque requête, limité à son organisation et à son rôle.
+
+### Mot de passe administrateur
+
+```bash
+# Générer l'empreinte du mot de passe
+node backend/scripts/hash-password.js "mon-mot-de-passe"
+# ou avec Docker :
+docker compose run --rm festibar node scripts/hash-password.js "mon-mot-de-passe"
+```
+
+```env
+ADMIN_PASSWORD_HASH='$2b$12$...'      # garder les apostrophes
+JWT_SECRET=<openssl rand -hex 32>
+```
+
+> `ADMIN_PASSWORD` (en clair) reste accepté temporairement si `ADMIN_PASSWORD_HASH` est absent, avec un avertissement au démarrage.
+
+### Protections
+
+- Mots de passe hachés (bcrypt), 8 caractères minimum pour les organisations
+- Limitation des tentatives de connexion et des envois du formulaire de contact
+- En-têtes de sécurité (helmet, CSP), CORS fermé par défaut, erreurs génériques
+- Validation des commandes côté serveur (quantités, produits disponibles, prix issus de la base)
+- Annulations et suppressions tracées dans un journal d'audit
 
 ---
 
 ## 💾 Données
-- Persistées via un fichier SQLite bar.db
-- Simple à sauvegarder / restaurer
-- Idéal pour un usage éphémère (festivals, événements temporaires)
+
+- Base SQLite `bar.db`, migrée automatiquement au démarrage
+- Sauvegarde automatique toutes les heures (`BACKUP_INTERVAL_MINUTES`), 48 conservées (`BACKUP_KEEP`)
+- Ventes regroupées par **journée de service** dans le fuseau de l'événement (`APP_TIMEZONE`) :
+  avec `SERVICE_DAY_START_HOUR=6`, une vente à 1h du matin compte pour la soirée de la veille
+- Les commandes annulées ne sont jamais effacées (statut « annulée »)
+- Demandes de contact supprimées automatiquement après `CONTACT_RETENTION_DAYS` jours
+
+---
+
+## ⚖️ Mentions légales et RGPD
+
+L'application fournit les pages **Mentions légales** (`/mentions-legales`), **Confidentialité** (`/confidentialite`) et **CGU** (`/cgu`).
+Renseignez les variables `LEGAL_*` de `backend/.env.local` (éditeur, directeur de publication, hébergeur…) : les champs manquants s'affichent « [à compléter] ».
+
+Points d'attention :
+
+- **Festibar n'est pas un logiciel de caisse certifié** (art. 286, I-3° bis du CGI). Une organisation assujettie à la TVA doit utiliser un système de caisse certifié.
+- Réglementation des buvettes temporaires (autorisation municipale, interdiction de vente d'alcool aux mineurs, affichage des prix TTC) : à la charge de l'organisation.
+- Si l'application est exploitée par un organisme public, une déclaration d'accessibilité (RGAA) est obligatoire.
+
+Ces textes sont une base de travail et ne remplacent pas l'avis d'un juriste.
 
 ---
 
 ## 🐛 Débogage & Tests
 - Utiliser console.log() + DevTools Vue
-- Supprimer bar.db pour repartir d’une base vide
+- Supprimer `data/bar.db` pour repartir d’une base vide
 
 ---
 
-## 📝 Plan d’améliorations (TODO)
+## 📝 Pistes d'amélioration
 
-- Authentification sécurisée (JWT, sessions)
-- Édition des commandes en cours
+- Montants stockés en centimes (entiers) plutôt qu'en nombres à virgule
 - Impression de tickets de commande
-- Export CSV des ventes
-- Internationalisation (i18n) et design responsive amélioré
+- Gestion de stock (quantités) et alertes de rupture
+- Plusieurs événements par organisation
+- Internationalisation (i18n)
 
 ---
 

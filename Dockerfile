@@ -1,17 +1,41 @@
-# Étape 1 : Utiliser Node.js
-FROM node:20
+# ---------- Étape 1 : build du frontend (Vue 3 + Vite) ----------
+FROM node:22-slim AS frontend-build
+WORKDIR /frontend
 
-# Créer un dossier de travail
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
+# ---------- Étape 2 : dépendances de production du backend ----------
+# Image complète : contient python3/make/g++ si sqlite3 ou bcrypt doivent être compilés
+FROM node:22 AS backend-deps
 WORKDIR /app
 
-# Copier tous les fichiers backend
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --omit=dev
+
+# ---------- Étape 3 : image finale ----------
+FROM node:22-slim
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    PORT=3001 \
+    SQLITE_FILE=/app/data/bar.db
+
+COPY --from=backend-deps /app/node_modules ./node_modules
 COPY backend/ ./
+# Le frontend compilé remplace celui éventuellement présent dans backend/public
+RUN rm -rf ./public
+COPY --from=frontend-build /frontend/dist ./public
 
-# Installer les dépendances backend
-RUN npm install --omit=dev
+RUN mkdir -p /app/data
 
-# Exposer le port du serveur Express
-EXPOSE 80
+VOLUME ["/app/data"]
+EXPOSE 3001
 
-# Commande de démarrage
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:' + (process.env.PORT || 3001) + '/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["node", "index.js"]

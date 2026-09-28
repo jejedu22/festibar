@@ -16,5 +16,7 @@ router.use('/:orgSlug/login', require('./authRoutes'));
 router.use('/admin/auth', require('./adminAuthRoutes'));
 router.use('/admin/organizations', require('./organizationRoutes'));
 router.use('/contact', require('./contactRoutes'));
+router.use('/legal', require('./legalRoutes'));
+router.use('/config', require('./configRoutes'));
 
 module.exports = router;

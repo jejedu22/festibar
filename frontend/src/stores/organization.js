@@ -1,69 +1,64 @@
+// frontend/src/stores/organization.js
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { api } from '@/utils/api'
+import { readJSON, writeJSON, remove, isTokenValid } from '@/utils/storage'
+
+const SESSION_KEY = 'orgSession'
 
 export const useOrganizationStore = defineStore('organization', () => {
-  // --- État principal ---
-  const organization = ref(null)
-  const organizationName = ref('')
-  const isAuthenticated = ref(false) // nouvel état pour savoir si l'utilisateur est connecté
+  // Session : { token, role: 'staff' | 'manager', id, name, slug }
+  const session = ref(readJSON(SESSION_KEY, null))
+  remove('auth') // ancien format (en-tête x-auth), plus utilisé
 
-  // --- Chargement de l'organisation depuis le backend ---
-  async function loadOrganization(orgSlug) {
-    // évite de recharger si déjà présent
-    if (organization.value && organization.value.slug === orgSlug) return
+  const organizationName = ref(session.value?.name || '')
+  const organizationSlug = ref(session.value?.slug || '')
 
-    const auth = JSON.parse(localStorage.getItem('auth') || '{}')
-    const headers = auth.id ? { 'x-auth': JSON.stringify(auth) } : {}
+  const token = computed(() => session.value?.token || null)
+  const role = computed(() => session.value?.role || null)
+  const isManager = computed(() => role.value === 'manager')
 
-    const res = await fetch(`/api/admin/organizations/${orgSlug}`, { headers })
-    if (!res.ok) {
-      // organisation introuvable ou pas autorisé
-      organization.value = null
-      organizationName.value = ''
-      isAuthenticated.value = false
-      return
+  // Connecté (jeton non expiré) à l'organisation donnée, avec un rôle suffisant
+  function isAuthenticatedFor(slug, requiredRole = 'staff') {
+    const s = session.value
+    if (!s || s.slug !== slug || !isTokenValid(s.token)) return false
+    return requiredRole === 'staff' || s.role === 'manager'
+  }
+
+  // Nom public de l'organisation (null si elle n'existe pas)
+  async function loadOrganization(slug) {
+    if (organizationSlug.value === slug && organizationName.value) return true
+    try {
+      const data = await api(`/api/organizations/${slug}`)
+      organizationName.value = data.name
+      organizationSlug.value = slug
+      return true
+    } catch (err) {
+      if (err.status === 404) return false
+      throw err
     }
-
-    const data = await res.json()
-    organization.value = data
-    organizationName.value = data?.name || ''
-    isAuthenticated.value = !!auth.id // true si un auth existe
   }
 
-  // --- Login : stocke l'authentification ---
-  function login({ id, name, slug }) {
-    localStorage.setItem('auth', JSON.stringify({ id, name, slug }))
-    isAuthenticated.value = true
-    organization.value = { id, name, slug }
-    organizationName.value = name
+  function login(data) {
+    session.value = { token: data.token, role: data.role, id: data.id, name: data.name, slug: data.slug }
+    organizationName.value = data.name
+    organizationSlug.value = data.slug
+    writeJSON(SESSION_KEY, session.value)
   }
 
-  // --- Logout ---
   function logout() {
-    localStorage.removeItem('auth')
-    isAuthenticated.value = false
-    organization.value = null
-    organizationName.value = ''
+    session.value = null
+    remove(SESSION_KEY)
   }
 
-  function getAuthHeaders() {
-    if (!organization.value) return {}
-    return {
-      'Content-Type': 'application/json',
-      'x-auth': JSON.stringify({
-        id: organization.value.id,
-        slug: organization.value.slug
-      })
-    }
+  // Requête authentifiée vers l'API de l'organisation courante
+  function orgApi(path, options = {}) {
+    return api(`/api/${organizationSlug.value}${path}`, { ...options, token: token.value })
   }
 
   return {
-    organization,
-    organizationName,
-    isAuthenticated,
-    loadOrganization,
-    login,
-    logout,
-    getAuthHeaders
+    session, token, role, isManager,
+    organizationName, organizationSlug,
+    isAuthenticatedFor, loadOrganization, login, logout, orgApi,
   }
 })
