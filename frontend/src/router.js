@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import OrganizationLayout from './layouts/OrganizationLayout.vue'
+import { isAdminAuthenticated } from './utils/adminAuth'
 
 // Pages organisation
 import OrderPage from './pages/OrderPage.vue'
@@ -26,8 +27,7 @@ const requireAuth = (to, from, next) => {
 }
 
 const requireAdminAuth = (to, from, next) => {
-  const isAdmin = localStorage.getItem('isAdminAuthenticated') === 'true'
-  if (!isAdmin) next('/admin/auth/login')
+  if (!isAdminAuthenticated()) next('/admin/auth/login')
   else next()
 }
 

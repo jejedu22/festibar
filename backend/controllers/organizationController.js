@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 
 // --- Liste des organisations ---
 exports.getAll = (req, res) => {
-  db.all('SELECT * FROM organizations', (err, rows) => {
+  db.all('SELECT id, name, slug FROM organizations', (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -14,7 +14,7 @@ exports.getAll = (req, res) => {
 exports.getOne = (req, res) => {
     const orgId = req.organizationId;
     const query = `
-      SELECT o.name, o.password
+      SELECT o.name
       FROM organizations o
       WHERE o.id = ?
     `;
@@ -28,15 +28,20 @@ exports.getOne = (req, res) => {
 exports.update = (req, res) => {
   const { id } = req.params;
   const { name, slug, password } = req.body;
-  if (!name || !slug || !password) return res.status(400).json({ error: 'Tous les champs sont requis' });
+  if (!name || !slug) return res.status(400).json({ error: 'Nom et slug requis' });
 
-  const hashedPassword = bcrypt.hashSync(password, 10);
+  // Mot de passe optionnel à l'édition : conservé s'il n'est pas fourni
+  const fields = ['name = ?', 'slug = ?'];
+  const params = [name, slug];
+  if (password) {
+    fields.push('password = ?');
+    params.push(bcrypt.hashSync(password, 10));
+  }
+  params.push(id);
 
   db.run(
-    `UPDATE organizations
-     SET name = ?, slug = ?, password = ?
-     WHERE id = ?`,
-    [name, slug, hashedPassword, id],
+    `UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`,
+    params,
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ updated: this.changes });

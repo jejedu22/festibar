@@ -24,6 +24,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { setAdminToken } from "../utils/adminAuth";
 
 const password = ref("");
 const error = ref("");
@@ -38,10 +39,12 @@ async function login() {
     });
 
     if (res.ok) {
-      localStorage.setItem("isAdminAuthenticated", "true");
+      const { token } = await res.json();
+      setAdminToken(token);
+      password.value = "";
       router.push("/admin/organizations");
     } else {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       error.value = data.error || "Erreur de connexion";
     }
   } catch {

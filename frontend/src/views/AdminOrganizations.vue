@@ -2,7 +2,7 @@
   <div class="relative max-w-md mx-auto p-4">
     <!-- Bouton de déconnexion -->
     <button
-      @click="logout"
+      @click="logout()"
       class="absolute top-4 right-4 text-sm text-red-600 hover:underline"
     >
       🔓 Déconnexion
@@ -83,6 +83,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { adminHeaders, clearAdminToken } from '../utils/adminAuth'
 
 const router = useRouter()
 const organizations = ref([])
@@ -144,7 +145,8 @@ function edit(o) {
 
 // --- Supprimer organisation ---
 async function del(id) {
-  await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE' })
+  const res = await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE', headers: adminHeaders() })
+  if (!(await checkResponse(res))) return
   await loadOrganizations()
 }
 
@@ -160,11 +162,12 @@ async function save() {
     delete payload.password // ne pas envoyer de password vide lors de l'édition
   }
 
-  await fetch(url, {
+  const res = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: adminHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   })
+  if (!(await checkResponse(res))) return
 
   reset()
   await loadOrganizations()
@@ -174,7 +177,8 @@ async function save() {
 async function loadOrganizations() {
   try {
     loading.value = true
-    const res = await fetch('/api/admin/organizations')
+    const res = await fetch('/api/admin/organizations', { headers: adminHeaders() })
+    if (res.status === 401) return logout('/admin/auth/login')
     if (!res.ok) throw new Error('Impossible de charger les organisations.')
     organizations.value = await res.json()
   } catch (err) {
@@ -184,16 +188,31 @@ async function loadOrganizations() {
   }
 }
 
+// --- Vérifie la réponse : session expirée → reconnexion, sinon affiche l'erreur ---
+async function checkResponse(res) {
+  if (res.status === 401) {
+    logout('/admin/auth/login')
+    return false
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    error.value = data.error || 'Une erreur est survenue.'
+    return false
+  }
+  error.value = null
+  return true
+}
+
 // --- Navigation vers l'organisation ---
 function goToOrg(org) {
   router.push(`/${org.slug}/admin`)
 }
 
 // --- Déconnexion ---
-function logout() {
+function logout(path = '/') {
   localStorage.removeItem('auth')
-  localStorage.removeItem('isAdminAuthenticated')
-  router.push({ path: '/' })
+  clearAdminToken()
+  router.push({ path })
 }
 
 onMounted(loadOrganizations)

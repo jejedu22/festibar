@@ -107,8 +107,31 @@ npm run dev
 
 ## 🔐 Authentification
 
-- Basée sur un flag isAuthenticated stocké dans localStorage
-- Redirection automatique si l’utilisateur n’est pas authentifié
+### Administrateur global (`/admin/auth/login`)
+
+- Le mot de passe n'est jamais stocké en clair : seule son **empreinte bcrypt** est configurée (`ADMIN_PASSWORD_HASH`).
+- À la connexion, le serveur renvoie un **jeton signé (JWT)** valable `ADMIN_TOKEN_TTL` (12h par défaut), exigé par toutes les routes de gestion des organisations.
+- 5 tentatives échouées par IP → blocage 15 minutes.
+
+Configuration (dans `backend/.env.local`) :
+
+```bash
+# Générer l'empreinte du mot de passe
+node backend/scripts/hash-password.js "mon-mot-de-passe"
+# ou avec Docker :
+docker compose run --rm festibar node scripts/hash-password.js "mon-mot-de-passe"
+```
+
+```env
+ADMIN_PASSWORD_HASH='$2b$12$...'      # garder les apostrophes
+JWT_SECRET=<openssl rand -hex 32>
+```
+
+> `ADMIN_PASSWORD` (en clair) reste accepté temporairement si `ADMIN_PASSWORD_HASH` est absent, avec un avertissement au démarrage.
+
+### Organisations
+
+- Mot de passe par organisation, stocké haché (bcrypt).
 
 ---
 
@@ -127,7 +150,7 @@ npm run dev
 
 ## 📝 Plan d’améliorations (TODO)
 
-- Authentification sécurisée (JWT, sessions)
+- Authentification sécurisée des organisations (JWT, sessions)
 - Édition des commandes en cours
 - Impression de tickets de commande
 - Export CSV des ventes
