@@ -26,7 +26,10 @@ dist-ssr
 *.sln
 *.sw?
 
-bar.db
+# Bases SQLite (données réelles : jamais dans git)
+*.db
+*.db-wal
+*.db-shm
 
 # Données SQLite persistées par Docker
 data/

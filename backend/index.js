@@ -4,7 +4,7 @@ const app = require('./app');
 const db = require('./config/database');
 const backup = require('./utils/backup');
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 db.ready.then(() => {
   backup.start();
