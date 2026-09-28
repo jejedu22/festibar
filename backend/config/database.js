@@ -59,9 +59,17 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     organization_id INTEGER NOT NULL,
     name TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 0,
     UNIQUE(organization_id, name),
     FOREIGN KEY(organization_id) REFERENCES organizations(id)
   )`);
+
+  // Migration : bases créées avant l'ajout du tri des catégories
+  db.all(`PRAGMA table_info(categories)`, (err, cols) => {
+    if (!err && !cols.some(c => c.name === 'sort_order')) {
+      db.run(`ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0`);
+    }
+  });
 
   // --- Nouvelle table pour les demandes de contact / accès ---
   db.run(`CREATE TABLE IF NOT EXISTS contacts (
