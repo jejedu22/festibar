@@ -18,16 +18,41 @@ if (!jwtSecret || jwtSecret === 'change-me-in-prod') {
   console.warn('⚠️  JWT_SECRET absent ou par défaut : secret temporaire généré (sessions perdues au redémarrage).');
 }
 
-const passwordHash = process.env.ADMIN_PASSWORD_HASH || null;
-const plainPassword = passwordHash ? null : process.env.ADMIN_PASSWORD || null;
+// Empreinte bcrypt : $2a$ / $2b$ / $2y$, coût sur 2 chiffres, 53 caractères de sel + hash
+const BCRYPT_RE = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
 
-if (!passwordHash && !plainPassword) {
-  console.warn('⚠️  Aucun ADMIN_PASSWORD_HASH configuré : la connexion admin est désactivée.');
+// Tolère les erreurs de recopie courantes : apostrophes/guillemets conservés, "$$" non convertis
+function normalizeHash(raw) {
+  if (!raw) return null;
+  let v = raw.trim().replace(/^(['"])(.*)\1$/, '$2');
+  if (v.includes('$$')) v = v.replace(/\$\$/g, '$');
+  return v;
+}
+
+const rawHash = normalizeHash(process.env.ADMIN_PASSWORD_HASH);
+let passwordHash = null;
+if (rawHash) {
+  if (BCRYPT_RE.test(rawHash)) {
+    passwordHash = rawHash;
+  } else {
+    // Cas typique : Docker Compose a interprété les "$" de l'empreinte comme des variables
+    console.error(
+      `❌ ADMIN_PASSWORD_HASH invalide (${rawHash.length} caractères au lieu de 60) : empreinte tronquée ou mal copiée.\n` +
+      "   Dans backend/.env.local, entourez-la d'apostrophes : ADMIN_PASSWORD_HASH='$2b$12$...'\n" +
+      '   (sans apostrophes ou entre guillemets, Docker Compose remplace les "$..." par des variables vides).'
+    );
+  }
+}
+const plainPassword = passwordHash ? null : process.env.ADMIN_PASSWORD || null;
+const adminLoginConfigured = !!(passwordHash || plainPassword);
+
+if (!adminLoginConfigured) {
+  console.warn('⚠️  Aucun mot de passe administrateur valide : la connexion admin est désactivée.');
 } else if (plainPassword) {
   console.warn('⚠️  ADMIN_PASSWORD en clair utilisé : préférez ADMIN_PASSWORD_HASH (node scripts/hash-password.js).');
 }
 
 module.exports = {
-  jwtSecret, passwordHash, plainPassword, TOKEN_TTL,
+  jwtSecret, passwordHash, plainPassword, adminLoginConfigured, TOKEN_TTL,
   ORG_TOKEN_TTL, STAFF_CANCEL_MINUTES, MIN_PASSWORD_LENGTH,
 };

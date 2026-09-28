@@ -99,7 +99,8 @@ exports.create = async (req, res) => {
     let orderId;
     try {
       ({ lastID: orderId } = await db.runAsync(
-        `INSERT INTO orders (organization_id, total, payment_method, client_id) VALUES (?, ?, ?, ?)`,
+        `INSERT INTO orders (organization_id, total, payment_method, client_id, timestamp)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [orgId, total, paymentMethod, clientId || null]
       ));
     } catch (err) {

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { createLimiter } = require('../utils/http');
-const { jwtSecret, passwordHash, plainPassword, TOKEN_TTL } = require('../config/auth');
+const { jwtSecret, passwordHash, plainPassword, adminLoginConfigured, TOKEN_TTL } = require('../config/auth');
 
 const router = express.Router();
 
@@ -24,6 +24,12 @@ async function checkPassword(password) {
 
 // Endpoint d’auth admin : renvoie un jeton signé
 router.post('/login', async (req, res) => {
+  if (!adminLoginConfigured) {
+    return res.status(503).json({
+      error: 'Connexion administrateur non configurée : voir les journaux du serveur (ADMIN_PASSWORD_HASH).',
+    });
+  }
+
   const ip = req.ip;
   if (limiter.isBlocked(ip)) {
     return res.status(429).json({ error: `Trop de tentatives, réessayez dans ${limiter.minutes} minutes` });
@@ -36,6 +42,7 @@ router.post('/login', async (req, res) => {
 
   if (!(await checkPassword(password))) {
     limiter.hit(ip);
+    console.warn(`Échec de connexion administrateur (IP ${ip})`);
     return res.status(401).json({ error: 'Mot de passe incorrect' });
   }
 

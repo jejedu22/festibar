@@ -19,6 +19,7 @@ async function ensureColumn(table, column, definition) {
   const cols = await db.allAsync(`PRAGMA table_info(${table})`);
   if (!cols.some(c => c.name === column)) {
     await db.runAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`🔧 Migration : colonne ${table}.${column} ajoutée`);
   }
 }
 
@@ -108,13 +109,41 @@ async function init() {
   )`);
 
   // --- Migrations des bases existantes ---
-  await ensureColumn('organizations', 'staff_password', 'TEXT');
-  await ensureColumn('categories', 'sort_order', 'INTEGER DEFAULT 0');
-  await ensureColumn('orders', 'status', "TEXT NOT NULL DEFAULT 'active'");
-  await ensureColumn('orders', 'payment_method', "TEXT NOT NULL DEFAULT 'cash'");
-  await ensureColumn('orders', 'client_id', 'TEXT');
-  await ensureColumn('orders', 'cancelled_at', 'TEXT');
-  await ensureColumn('orders', 'cancelled_by', 'TEXT');
+  // Toute colonne utilisée par l'application est ajoutée si elle manque (bases créées par
+  // d'anciennes versions). ALTER TABLE ne permet pas NOT NULL sans valeur par défaut :
+  // les définitions ci-dessous sont donc compatibles avec un ajout sur une table déjà remplie.
+  const expectedColumns = {
+    organizations: { staff_password: 'TEXT' },
+    categories: { sort_order: 'INTEGER DEFAULT 0' },
+    products: {
+      category_id: 'INTEGER',
+      available: 'INTEGER DEFAULT 1',
+    },
+    orders: {
+      timestamp: 'TEXT',
+      status: "TEXT NOT NULL DEFAULT 'active'",
+      payment_method: "TEXT NOT NULL DEFAULT 'cash'",
+      client_id: 'TEXT',
+      cancelled_at: 'TEXT',
+      cancelled_by: 'TEXT',
+    },
+    order_items: {
+      quantity: 'INTEGER NOT NULL DEFAULT 1',
+      price: 'REAL NOT NULL DEFAULT 0',
+      sort_order: 'INTEGER',
+    },
+    contacts: { created_at: 'TEXT' },
+  };
+  for (const [table, columns] of Object.entries(expectedColumns)) {
+    for (const [column, definition] of Object.entries(columns)) {
+      await ensureColumn(table, column, definition);
+    }
+  }
+
+  // Lignes antérieures à l'ajout des dates : date inconnue, on met celle de la migration
+  const { changes: undated } = await db.runAsync(`UPDATE orders SET timestamp = CURRENT_TIMESTAMP WHERE timestamp IS NULL`);
+  if (undated) console.log(`🔧 Migration : ${undated} commande(s) sans date datée d'aujourd'hui (date réelle inconnue)`);
+  await db.runAsync(`UPDATE contacts SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`);
 
   // Index
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at)`);
