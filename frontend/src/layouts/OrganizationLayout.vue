@@ -1,27 +1,31 @@
+<!-- frontend/src/layouts/OrganizationLayout.vue -->
 <template>
-  <div v-if="organizationExists">
-    <router-view />
+  <NotFound v-if="state === 'missing'" />
+  <div v-else-if="state === 'error'" class="p-6 text-center">
+    <p class="mb-4">Impossible de joindre le serveur.</p>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded" @click="load">Réessayer</button>
   </div>
-  <NotFound v-else />
+  <router-view v-else />
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
 import NotFound from '../pages/NotFound.vue'
+import { useOrganizationStore } from '@/stores/organization'
 
 const route = useRoute()
-const orgSlug = route.params.orgSlug
-const organizationExists = ref(true)
+const org = useOrganizationStore()
+const state = ref('ok') // ok | missing | error
 
-onMounted(async () => {
+async function load() {
   try {
-    await axios.get(`/api/organizations/${orgSlug}`)
-    organizationExists.value = true
-  } catch (err) {
-    console.error("Organisation non trouvée :", err)
-    organizationExists.value = false
+    state.value = (await org.loadOrganization(route.params.orgSlug)) ? 'ok' : 'missing'
+  } catch {
+    // Hors-ligne : on laisse la prise de commande fonctionner avec les données en cache
+    state.value = org.organizationSlug === route.params.orgSlug ? 'ok' : 'error'
   }
-})
+}
+
+watch(() => route.params.orgSlug, load, { immediate: true })
 </script>

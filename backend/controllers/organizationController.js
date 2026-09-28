@@ -6,7 +6,7 @@ const { MIN_PASSWORD_LENGTH } = require('../config/auth');
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // Slugs qui entreraient en conflit avec les routes de l'application
-const RESERVED_SLUGS = ['admin', 'api', 'login', 'assets', 'mentions-legales', 'confidentialite', 'cgu'];
+const RESERVED_SLUGS = ['admin', 'api', 'login', 'assets', 'mentions-legales', 'confidentialite', 'cgu', 'legal', 'config', 'contact', 'organizations'];
 
 function validate({ name, slug, password, staff_password }, { requirePassword }) {
   if (typeof name !== 'string' || !name.trim() || name.length > 100) return 'Nom requis (100 caractères maximum)';

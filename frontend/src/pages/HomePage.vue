@@ -1,96 +1,93 @@
+<!-- frontend/src/pages/HomePage.vue -->
 <template>
-  <div class="p-6 max-w-3xl mx-auto text-center">
-    <h1 class="text-4xl font-bold mb-6">🍻 Bienvenue sur Festibar</h1>
-    <p class="text-lg mb-4">
-      Festibar est une application web simple et efficace conçue pour gérer les commandes
-      d’un bar lors d’un festival.
+  <div class="p-6 max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold mb-4 text-center">🍻 Festibar</h1>
+    <p class="text-lg mb-6 text-center">
+      La prise de commande simple et rapide pour les buvettes de festivals et d’événements associatifs.
     </p>
 
-    <div class="bg-gray-100 rounded-xl p-6 shadow-md text-left space-y-4 mb-8">
-      <h2 class="text-2xl font-semibold">Fonctionnalités principales :</h2>
-      <ul class="list-disc list-inside space-y-2">
-        <li>✅ Interface utilisateur fluide pour passer des commandes</li>
-        <li>✅ Gestion des produits et catégories via un espace administrateur</li>
-        <li>✅ Statistiques journalières des ventes</li>
-        <li>✅ Application rapide et portable grâce à Docker</li>
+    <div class="bg-gray-100 rounded-xl p-6 shadow-sm space-y-3 mb-8">
+      <h2 class="text-2xl font-semibold">Fonctionnalités</h2>
+      <ul class="list-disc list-inside space-y-1">
+        <li>Prise de commande sur téléphone, en quelques appuis</li>
+        <li>Calcul du rendu de monnaie, espèces ou carte</li>
+        <li>Fonctionne même en cas de coupure réseau</li>
+        <li>Accès séparés pour les serveurs et le gestionnaire</li>
+        <li>Ventes par soirée, export Excel, historique des annulations</li>
       </ul>
+      <p class="text-sm text-gray-700">
+        Festibar est un outil d’aide à la prise de commande : il ne constitue pas un logiciel de caisse certifié
+        (<router-link to="/cgu" class="underline">voir les conditions</router-link>).
+      </p>
     </div>
 
     <!-- Formulaire de contact -->
-    <div class="bg-white rounded-xl shadow-lg p-6 text-left">
-      <h2 class="text-2xl font-semibold mb-4">📩 Demander un accès</h2>
-      <form @submit.prevent="submitForm" class="space-y-4">
-        <div>
-          <label for="name" class="block text-sm font-medium">Nom</label>
-          <input
-            id="name"
-            v-model="form.name"
-            type="text"
-            required
-            class="w-full border rounded-lg p-2 mt-1"
-          />
-        </div>
+    <section class="bg-white rounded-xl shadow-lg p-6" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="text-2xl font-semibold mb-4">📩 Demander un accès</h2>
 
-        <div>
-          <label for="email" class="block text-sm font-medium">Email</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            required
-            class="w-full border rounded-lg p-2 mt-1"
-          />
-        </div>
-
-        <div>
-          <label for="message" class="block text-sm font-medium">Message</label>
-          <textarea
-            id="message"
-            v-model="form.message"
-            rows="4"
-            required
-            class="w-full border rounded-lg p-2 mt-1"
-          ></textarea>
-        </div>
-
-        <button
-          type="submit"
-          class="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Envoyer la demande
-        </button>
-      </form>
-
-      <p v-if="submitted" class="mt-4 text-green-600 font-semibold">
+      <p v-if="submitted" class="text-green-700 font-semibold" role="status">
         ✅ Merci pour votre demande, nous vous répondrons rapidement !
       </p>
-    </div>
+
+      <form v-else class="space-y-4" @submit.prevent="submitForm">
+        <label class="block">
+          <span class="text-sm font-medium">Nom</span>
+          <input v-model="form.name" type="text" autocomplete="name" maxlength="100" required class="w-full border rounded-lg p-2 mt-1" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium">Email</span>
+          <input v-model="form.email" type="email" autocomplete="email" maxlength="200" required class="w-full border rounded-lg p-2 mt-1" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium">Message (organisation, événement, dates…)</span>
+          <textarea v-model="form.message" rows="4" maxlength="2000" required class="w-full border rounded-lg p-2 mt-1"></textarea>
+        </label>
+
+        <!-- Champ piège anti-robots, invisible pour les humains -->
+        <div class="hidden" aria-hidden="true">
+          <label>Site web <input v-model="form.website" type="text" tabindex="-1" autocomplete="off" /></label>
+        </div>
+
+        <p class="text-xs text-gray-700">
+          Ces informations servent uniquement à traiter votre demande d’accès. Elles sont conservées au maximum
+          {{ retention }} jours puis supprimées. Vous pouvez exercer vos droits d’accès, de rectification et
+          d’effacement : voir la <router-link to="/confidentialite" class="underline">politique de confidentialité</router-link>.
+        </p>
+
+        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50" :disabled="sending">
+          {{ sending ? 'Envoi…' : 'Envoyer la demande' }}
+        </button>
+        <p v-if="error" class="text-red-700" role="alert">{{ error }}</p>
+      </form>
+    </section>
+
+    <LegalFooter />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
-import axios from "axios";
+import { reactive, ref, computed } from 'vue'
+import { api } from '@/utils/api'
+import { useLegalInfo } from '@/utils/legal'
+import LegalFooter from '@/components/LegalFooter.vue'
 
-const form = reactive({
-  name: "",
-  email: "",
-  message: "",
-});
+const form = reactive({ name: '', email: '', message: '', website: '' })
+const submitted = ref(false)
+const sending = ref(false)
+const error = ref('')
+const legal = useLegalInfo()
+const retention = computed(() => legal.value?.contactRetentionDays || 365)
 
-const submitted = ref(false);
-
-const submitForm = async () => {
+async function submitForm() {
+  error.value = ''
+  sending.value = true
   try {
-    await axios.post("/api/contact", { ...form });
-    submitted.value = true;
-    form.name = "";
-    form.email = "";
-    form.message = "";
+    await api('/api/contact', { method: 'POST', body: { ...form } })
+    submitted.value = true
   } catch (err) {
-    console.error("Erreur formulaire:", err);
-    alert("Erreur lors de l'envoi de votre demande.");
+    error.value = err.message
+  } finally {
+    sending.value = false
   }
-};
-
+}
 </script>

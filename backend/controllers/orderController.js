@@ -38,7 +38,7 @@ async function loadOrder(orgId, orderId) {
 // --- Création d'une commande ---
 exports.create = async (req, res) => {
   const orgId = req.organizationId;
-  const { items, paymentMethod = 'cash', clientId } = req.body || {};
+  const { items, paymentMethod = 'cash', clientId, offline } = req.body || {};
 
   // Validation
   if (!Array.isArray(items) || items.length === 0) {
@@ -87,8 +87,9 @@ exports.create = async (req, res) => {
     if (missing.length) {
       return res.status(400).json({ error: 'Un produit de la commande n’existe plus' });
     }
+    // Une commande saisie hors-ligne a déjà été servie : on ne la refuse pas pour une rupture survenue depuis
     const unavailable = products.filter(p => !p.available).map(p => p.name);
-    if (unavailable.length) {
+    if (unavailable.length && offline !== true) {
       return res.status(409).json({ error: `Produit épuisé : ${unavailable.join(', ')}`, unavailable });
     }
 

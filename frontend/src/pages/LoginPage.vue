@@ -1,18 +1,28 @@
+<!-- frontend/src/pages/LoginPage.vue -->
 <template>
-  <div class="max-w-sm mx-auto p-4">
-    <h1 class="text-xl font-bold mb-4">Connexion {{ orgStore.organizationName }}</h1>
-    <form @submit.prevent="login" class="space-y-2">
-      <!-- Le slug est dans l'URL, pas besoin de le saisir -->
-      <input
-        v-model="password"
-        placeholder="Mot de passe"
-        type="password"
-        class="w-full p-2 border rounded"
-        required
-      />
-      <button class="w-full bg-blue-500 text-white p-2 rounded">Connexion</button>
-    </form>
-    <p v-if="error" class="text-red-500 mt-2">{{ error }}</p>
+  <div class="max-w-sm mx-auto p-4 min-h-screen flex flex-col">
+    <div class="flex-1 flex flex-col justify-center">
+      <h1 class="text-2xl font-bold mb-1">{{ org.organizationName }}</h1>
+      <p class="text-gray-700 mb-4">Connexion serveur ou gestionnaire</p>
+      <form class="space-y-3" @submit.prevent="login">
+        <label class="block">
+          <span class="text-sm font-medium">Mot de passe</span>
+          <input
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            class="w-full p-3 border rounded-lg mt-1"
+            required
+            autofocus
+          />
+        </label>
+        <button class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50" :disabled="loading">
+          {{ loading ? 'Connexion…' : 'Se connecter' }}
+        </button>
+      </form>
+      <p v-if="error" class="text-red-700 mt-3" role="alert">{{ error }}</p>
+    </div>
+    <LegalFooter />
   </div>
 </template>
 
@@ -20,40 +30,35 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useOrganizationStore } from '@/stores/organization'
+import { api } from '@/utils/api'
+import LegalFooter from '@/components/LegalFooter.vue'
 
 const router = useRouter()
 const route = useRoute()
 const orgSlug = route.params.orgSlug
-const orgStore = useOrganizationStore()
+const org = useOrganizationStore()
 
 const password = ref('')
 const error = ref('')
+const loading = ref(false)
 
 async function login() {
   error.value = ''
-
+  loading.value = true
   try {
-    const res = await fetch(`/api/${orgSlug}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: password.value })
-    })
+    const data = await api(`/api/${orgSlug}/login`, { method: 'POST', body: { password: password.value } })
+    org.login(data)
+    password.value = ''
 
-    if (!res.ok) {
-      const data = await res.json()
-      error.value = data.error || 'Erreur de connexion'
-      return
-    }
-
-    const data = await res.json()
-
-    // Met à jour le store et localStorage
-    orgStore.login({ id: data.id, name: data.name, slug: orgSlug })
-
-    // Redirection vers la page admin
-    router.push(`/${orgSlug}/admin`)
+    // Retour à la page demandée si le rôle le permet, sinon page par défaut du rôle
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith(`/${orgSlug}`) ? route.query.redirect : null
+    const target = redirect && router.resolve(redirect)
+    if (target && (target.meta.role !== 'manager' || data.role === 'manager')) router.push(redirect)
+    else router.push(`/${orgSlug}/`)
   } catch (err) {
-    error.value = 'Erreur réseau'
+    error.value = err.message
+  } finally {
+    loading.value = false
   }
 }
 </script>
