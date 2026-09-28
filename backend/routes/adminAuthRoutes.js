@@ -3,33 +3,13 @@ const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { jwtSecret, passwordHash, plainPassword, TOKEN_TTL } = require('../config/adminAuth');
+const { createLimiter } = require('../utils/http');
+const { jwtSecret, passwordHash, plainPassword, TOKEN_TTL } = require('../config/auth');
 
 const router = express.Router();
 
 // --- Limitation des tentatives : 5 échecs par IP sur 15 minutes ---
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
-const failedAttempts = new Map(); // ip -> { count, firstAt }
-
-function isBlocked(ip) {
-  const entry = failedAttempts.get(ip);
-  if (!entry) return false;
-  if (Date.now() - entry.firstAt > WINDOW_MS) {
-    failedAttempts.delete(ip);
-    return false;
-  }
-  return entry.count >= MAX_ATTEMPTS;
-}
-
-function recordFailure(ip) {
-  const entry = failedAttempts.get(ip);
-  if (!entry || Date.now() - entry.firstAt > WINDOW_MS) {
-    failedAttempts.set(ip, { count: 1, firstAt: Date.now() });
-  } else {
-    entry.count++;
-  }
-}
+const limiter = createLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
 
 async function checkPassword(password) {
   if (passwordHash) return bcrypt.compare(password, passwordHash);
@@ -45,8 +25,8 @@ async function checkPassword(password) {
 // Endpoint d’auth admin : renvoie un jeton signé
 router.post('/login', async (req, res) => {
   const ip = req.ip;
-  if (isBlocked(ip)) {
-    return res.status(429).json({ error: 'Trop de tentatives, réessayez dans 15 minutes' });
+  if (limiter.isBlocked(ip)) {
+    return res.status(429).json({ error: `Trop de tentatives, réessayez dans ${limiter.minutes} minutes` });
   }
 
   const { password } = req.body || {};
@@ -55,11 +35,11 @@ router.post('/login', async (req, res) => {
   }
 
   if (!(await checkPassword(password))) {
-    recordFailure(ip);
+    limiter.hit(ip);
     return res.status(401).json({ error: 'Mot de passe incorrect' });
   }
 
-  failedAttempts.delete(ip);
+  limiter.reset(ip);
   const token = jwt.sign({ role: 'admin' }, jwtSecret, { algorithm: 'HS256', expiresIn: TOKEN_TTL });
   return res.json({ token });
 });

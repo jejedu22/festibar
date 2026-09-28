@@ -2,30 +2,56 @@
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database(process.env.SQLITE_FILE || './bar.db');
 
-db.serialize(() => {
+// --- Helpers promesses (utilisés par les migrations et les contrôleurs) ---
+db.runAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve({ lastID: this.lastID, changes: this.changes });
+    });
+  });
+db.getAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row))));
+db.allAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
+
+async function ensureColumn(table, column, definition) {
+  const cols = await db.allAsync(`PRAGMA table_info(${table})`);
+  if (!cols.some(c => c.name === column)) {
+    await db.runAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+async function init() {
   // Activer les clés étrangères
-  db.run('PRAGMA foreign_keys = ON');
-
+  await db.runAsync('PRAGMA foreign_keys = ON');
   // Mode WAL → meilleur pour accès concurrents
-  db.run('PRAGMA journal_mode = WAL;');
-
+  await db.runAsync('PRAGMA journal_mode = WAL');
   // Cache plus grand pour réduire I/O
-  db.run('PRAGMA cache_size = 10000;');
-
+  await db.runAsync('PRAGMA cache_size = 10000');
   // Synchro moins agressive → réduit latence (risque de perte en crash)
-  db.run('PRAGMA synchronous = NORMAL;');
-
+  await db.runAsync('PRAGMA synchronous = NORMAL');
   // Indices automatiques
-  db.run('PRAGMA automatic_index = ON;');
+  await db.runAsync('PRAGMA automatic_index = ON');
 
-  db.run(`CREATE TABLE IF NOT EXISTS organizations (
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    staff_password TEXT
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS products (
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    organization_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    UNIQUE(organization_id, name),
+    FOREIGN KEY(organization_id) REFERENCES organizations(id)
+  )`);
+
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     organization_id INTEGER NOT NULL,
     category_id INTEGER,
@@ -36,15 +62,21 @@ db.serialize(() => {
     FOREIGN KEY(category_id) REFERENCES categories(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS orders (
+  // Les commandes ne sont jamais effacées par une annulation : status = 'cancelled'
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     organization_id INTEGER NOT NULL,
     total REAL NOT NULL,
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'active',
+    payment_method TEXT NOT NULL DEFAULT 'cash',
+    client_id TEXT,
+    cancelled_at TEXT,
+    cancelled_by TEXT,
     FOREIGN KEY(organization_id) REFERENCES organizations(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS order_items (
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER,
     product_id INTEGER,
@@ -55,24 +87,8 @@ db.serialize(() => {
     FOREIGN KEY(product_id) REFERENCES products(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    organization_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    sort_order INTEGER DEFAULT 0,
-    UNIQUE(organization_id, name),
-    FOREIGN KEY(organization_id) REFERENCES organizations(id)
-  )`);
-
-  // Migration : bases créées avant l'ajout du tri des catégories
-  db.all(`PRAGMA table_info(categories)`, (err, cols) => {
-    if (!err && !cols.some(c => c.name === 'sort_order')) {
-      db.run(`ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0`);
-    }
-  });
-
-  // --- Nouvelle table pour les demandes de contact / accès ---
-  db.run(`CREATE TABLE IF NOT EXISTS contacts (
+  // Demandes de contact / accès
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS contacts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -80,8 +96,38 @@ db.serialize(() => {
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  // Index utile pour lister par date
-  db.run(`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at)`);
+  // Journal des opérations sensibles (annulations, suppressions)
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    organization_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    order_id INTEGER,
+    actor_role TEXT,
+    details TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // --- Migrations des bases existantes ---
+  await ensureColumn('organizations', 'staff_password', 'TEXT');
+  await ensureColumn('categories', 'sort_order', 'INTEGER DEFAULT 0');
+  await ensureColumn('orders', 'status', "TEXT NOT NULL DEFAULT 'active'");
+  await ensureColumn('orders', 'payment_method', "TEXT NOT NULL DEFAULT 'cash'");
+  await ensureColumn('orders', 'client_id', 'TEXT');
+  await ensureColumn('orders', 'cancelled_at', 'TEXT');
+  await ensureColumn('orders', 'cancelled_by', 'TEXT');
+
+  // Index
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at)`);
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_orders_org ON orders(organization_id, timestamp)`);
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`);
+  // Idempotence des commandes envoyées hors-ligne puis resynchronisées
+  await db.runAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_client_id ON orders(organization_id, client_id)`);
+}
+
+db.ready = init();
+db.ready.catch(err => {
+  console.error('❌ Initialisation de la base impossible :', err);
+  process.exit(1);
 });
 
 module.exports = db;

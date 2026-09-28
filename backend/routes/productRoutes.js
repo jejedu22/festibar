@@ -3,13 +3,14 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const productController = require('../controllers/productController');
 const withOrganization = require('../middlewares/withOrganization');
-const userAuth = require('../middlewares/userAuth');
+const orgAuth = require('../middlewares/orgAuth');
 
 router.use(withOrganization);
 
 router.get('/', productController.getAll);
-router.post('/', userAuth, productController.create);
-router.put('/:id', userAuth, productController.update);
-router.delete('/:id', userAuth, productController.remove);
+router.post('/', orgAuth('manager'), productController.create);
+router.put('/:id', orgAuth('manager'), productController.update);
+router.patch('/:id/availability', orgAuth('manager'), productController.setAvailability);
+router.delete('/:id', orgAuth('manager'), productController.remove);
 
 module.exports = router;

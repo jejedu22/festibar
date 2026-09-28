@@ -1,8 +1,15 @@
-// backend/config/adminAuth.js
-// Configuration de l'authentification de l'administrateur global
+// backend/config/auth.js
+// Configuration de l'authentification (administrateur global et organisations)
 const crypto = require('crypto');
 
 const TOKEN_TTL = process.env.ADMIN_TOKEN_TTL || '12h';
+const ORG_TOKEN_TTL = process.env.ORG_TOKEN_TTL || '24h';
+
+// Durée pendant laquelle un serveur peut annuler une commande qu'il vient de saisir
+const STAFF_CANCEL_MINUTES = Number.parseInt(process.env.STAFF_CANCEL_MINUTES || '15', 10);
+
+// Longueur minimale des mots de passe d'organisation
+const MIN_PASSWORD_LENGTH = 8;
 
 let jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret || jwtSecret === 'change-me-in-prod') {
@@ -20,4 +27,7 @@ if (!passwordHash && !plainPassword) {
   console.warn('⚠️  ADMIN_PASSWORD en clair utilisé : préférez ADMIN_PASSWORD_HASH (node scripts/hash-password.js).');
 }
 
-module.exports = { jwtSecret, passwordHash, plainPassword, TOKEN_TTL };
+module.exports = {
+  jwtSecret, passwordHash, plainPassword, TOKEN_TTL,
+  ORG_TOKEN_TTL, STAFF_CANCEL_MINUTES, MIN_PASSWORD_LENGTH,
+};

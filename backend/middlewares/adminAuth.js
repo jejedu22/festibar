@@ -1,6 +1,6 @@
 // backend/middlewares/adminAuth.js
 const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../config/adminAuth');
+const { jwtSecret } = require('../config/auth');
 
 // Vérifie le jeton "Authorization: Bearer <token>" émis par /api/admin/auth/login
 module.exports = (req, res, next) => {
