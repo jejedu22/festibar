@@ -17,5 +17,5 @@ services:
       PORT: 3001
       SQLITE_FILE: /app/data/bar.db
     volumes:
-      # Base SQLite persistée sur l'hôte (./data/bar.db)
+      # Base SQLite et sauvegardes automatiques persistées sur l'hôte (./data/bar.db, ./data/backups/)
       - ./data:/app/data
