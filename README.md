@@ -232,7 +232,16 @@ L’application est disponible sur `https://<FESTIBAR_HOST>`. Traefik obtient le
 | Variable | Description |
 |---|---|
 | `ADMIN_EMAIL` | Destinataire des demandes. Sans lui, pas d’email, mais les demandes restent enregistrées en base. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | Serveur d’envoi (`SMTP_SECURE=true` pour le port 465) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | Serveur d’envoi (`SMTP_SECURE=true` pour le port 465, `false` pour 587) |
+| `SMTP_FROM` | Adresse d’expédition. Obligatoire si `SMTP_USER` n’est pas une adresse email (Brevo, SendGrid…) ; sinon `SMTP_USER` est utilisé |
+
+Pour vérifier la configuration, envoyez un email de test à `ADMIN_EMAIL` :
+
+```bash
+docker compose exec festibar node scripts/test-mail.js
+```
+
+Le script affiche la configuration lue, teste la connexion et l’authentification, puis envoie l’email ; en cas d’échec, il indique la cause probable (identifiants, port, pare-feu, expéditeur refusé). Au démarrage, les journaux indiquent aussi `📧 Emails activés` ou ce qui manque.
 
 **Mentions légales** (affichées sur `/mentions-legales`, `/confidentialite`, `/cgu` ; « [à compléter] » si vide)
 
@@ -497,7 +506,7 @@ Ces textes sont une base de travail et ne remplacent pas l’avis d’un juriste
 | Tout le monde est déconnecté après un redémarrage | `JWT_SECRET` non défini (un secret temporaire est généré à chaque démarrage) |
 | « Trop de tentatives » | Attendre 15 minutes. Si tous les utilisateurs sont bloqués ensemble, vérifier `TRUST_PROXY=1` (sinon, tous semblent venir de l’IP de Traefik) |
 | Heures décalées ou ventes après minuit sur le mauvais jour | Vérifier `APP_TIMEZONE` et `SERVICE_DAY_START_HOUR` |
-| Pas d’email pour les demandes d’accès | Vérifier `ADMIN_EMAIL` et `SMTP_*`, puis les logs (`Erreur envoi mail`). Les demandes restent enregistrées en base. |
+| Pas d’email pour les demandes d’accès | Lancer `docker compose exec festibar node scripts/test-mail.js` : il indique ce qui bloque. Vérifier aussi les indésirables. Les journaux affichent `📧 … envoyée par email` ou `❌ Erreur envoi mail` à chaque demande ; les demandes restent enregistrées en base. |
 | Commandes « en attente d’envoi » qui ne partent pas | Le téléphone n’a pas de réseau, ou la session a expiré : se reconnecter sur ce même téléphone |
 | « Commande(s) hors-ligne refusée(s) » | Un produit a été supprimé entre-temps. Le gestionnaire doit ressaisir la commande. |
 | L’application ne s’installe pas sur le téléphone | L’installation et le rechargement sans réseau nécessitent le HTTPS |
