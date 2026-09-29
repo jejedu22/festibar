@@ -1,8 +1,10 @@
 // backend/controllers/contactController.js
 const db = require('../config/database');
-const nodemailer = require('nodemailer');
+const mail = require('../utils/mail');
 const { serverError, createLimiter } = require('../utils/http');
 require('dotenv').config();
+
+mail.logStatusAtStartup();
 
 // 3 demandes par IP et par heure
 const limiter = createLimiter({ max: 3, windowMs: 60 * 60 * 1000 });
@@ -55,21 +57,13 @@ exports.createContact = async (req, res) => {
 };
 
 function notifyAdmin(data) {
-  if (!process.env.SMTP_HOST || !process.env.ADMIN_EMAIL) return;
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    connectionTimeout: 10000,
-  });
-  transporter
-    .sendMail({
-      from: process.env.SMTP_USER,
-      to: process.env.ADMIN_EMAIL,
+  if (mail.missingSettings().length) return; // emails désactivés (signalé au démarrage)
+  mail
+    .sendToAdmin({
       replyTo: data.email,
       subject: 'Nouvelle demande d’accès à Festibar',
       text: `Nom : ${data.name}\nEmail : ${data.email}\nMessage :\n${data.message}`,
     })
-    .catch(err => console.error('Erreur envoi mail:', err));
+    .then(() => console.log(`📧 Demande d'accès de ${data.email} envoyée par email`))
+    .catch(err => console.error(`❌ Erreur envoi mail (demande de ${data.email} conservée en base) : ${mail.explain(err)}`));
 }
