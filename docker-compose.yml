@@ -7,6 +7,9 @@ services:
     image: festibar:latest
     container_name: festibar
     restart: unless-stopped
+    # Serveur 2 CPU / 4 Go partagé avec les autres applications
+    mem_limit: 192m
+    cpus: 0.5
     # Pas de port publié : l'application n'est joignable qu'à travers Traefik
     env_file:
       - path: ./backend/.env
