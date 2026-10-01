@@ -536,10 +536,16 @@ Ces textes sont une base de travail et ne remplacent pas l’avis d’un juriste
 4. Pousser : `git push origin feature/ma-fonctionnalite`
 5. Ouvrir une Pull Request en décrivant le changement et la façon dont il a été testé
 
+Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le détail, et [SECURITY.md](SECURITY.md) pour signaler une faille.
+
 Merci pour vos contributions ! 🎉
 
 ---
 
 ## 📜 Licence
 
-Ce projet est open-source et libre de droit pour usage personnel ou en festival. 🍻
+Copyright © Jérôme Sourdin et contributeurs.
+
+Ce programme est un logiciel libre : vous pouvez le redistribuer et/ou le modifier selon les termes de la [GNU General Public License](LICENSE) telle que publiée par la Free Software Foundation, version 3 de la licence ou (à votre choix) toute version ultérieure.
+
+Il est distribué dans l'espoir qu'il sera utile, mais **sans aucune garantie** ; voir le fichier [LICENSE](LICENSE) pour plus de détails.

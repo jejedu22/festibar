@@ -14,7 +14,8 @@ export default defineConfig({
     port: 8001,
     strictPort: true,
     cors: true,
-    allowedHosts: ['all', 'localhost', 'v011085.cotesdarmor.dpt', '10.2.11.85'],          // ← évite le blocage par nom de domaine ou IP
+    // Noms d'hôte supplémentaires acceptés par le serveur de dev (séparés par des virgules)
+    allowedHosts: ['localhost', ...(process.env.VITE_ALLOWED_HOSTS || '').split(',').filter(Boolean)],
     proxy: {
       '/api': process.env.API_PROXY_TARGET || 'http://localhost:3001'
     }
