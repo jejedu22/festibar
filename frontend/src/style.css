@@ -1,3 +1,32 @@
+/* Polices hébergées avec l'application (disponibles hors-ligne) */
+@import '@fontsource/dm-sans/latin-400.css';
+@import '@fontsource/dm-sans/latin-500.css';
+@import '@fontsource/dm-sans/latin-600.css';
+@import '@fontsource/dm-sans/latin-700.css';
+@import '@fontsource/bricolage-grotesque/latin-600.css';
+@import '@fontsource/bricolage-grotesque/latin-700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* Champs et boutons partagés par les écrans d'administration et de gestion */
+  .field { @apply w-full min-h-[48px] px-3.5 border border-slate-400 rounded-[10px] text-base text-ink bg-white; }
+  .field:focus { @apply outline-none ring-2 ring-blue-600 border-blue-600; }
+  .label { @apply block text-sm font-semibold mb-1.5; }
+  .btn { @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[10px] font-semibold text-[15px] transition disabled:opacity-50; }
+  .btn-primary { @apply btn bg-blue-600 text-white hover:bg-blue-700; }
+  .btn-secondary { @apply btn bg-white text-slate-800 border border-slate-400 hover:bg-slate-50; }
+  .btn-danger { @apply btn bg-white text-red-700 border border-red-700 hover:bg-red-50; }
+  .icon-btn { @apply inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-[10px] border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
+  .card { @apply bg-white border border-slate-200 rounded-2xl; }
+  .chip { @apply inline-flex items-center min-h-[44px] px-4 rounded-full border text-[15px] font-semibold whitespace-nowrap; }
+}
+
+/* Impression : seule la zone .print-area (ex. affiche QR code) est imprimée */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; inset: 0; }
+}

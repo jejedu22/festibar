@@ -28,3 +28,20 @@ export const PAYMENT_METHODS = [
 export function paymentLabel(value) {
   return PAYMENT_METHODS.find(p => p.value === value)?.label || value;
 }
+
+// "Fête de la Musique" → "FM", "Kermesse de l’école Pasteur" → "KP"
+export function initials(name) {
+  return String(name || '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 || /\d/.test(w))
+    .filter((w, i, all) => i === 0 || i === all.length - 1)
+    .map(w => w[0].toUpperCase())
+    .join('') || String(name || '').trim().charAt(0).toUpperCase() || '?'
+}
+
+// "2026-10-04" → "sam. 4 oct."
+export function formatShortDay(day) {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
