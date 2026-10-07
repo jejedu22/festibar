@@ -7,6 +7,7 @@
         <h1 class="text-xl font-bold truncate">🎪 {{ org.organizationName }}</h1>
         <div class="flex items-center gap-3 text-sm shrink-0">
           <router-link v-if="org.isManager" :to="`/${orgSlug}/admin`" class="text-blue-700 underline">Gestion</router-link>
+          <button v-if="canInstall" class="text-blue-700 underline" @click="install">Installer</button>
           <button class="text-gray-600 underline" @click="logout">Déconnexion</button>
         </div>
       </div>
@@ -125,6 +126,7 @@ import { formatPrice, PAYMENT_METHODS } from '@/utils/format'
 import { readJSON, writeJSON } from '@/utils/storage'
 import { uuid } from '@/utils/uuid'
 import { enqueue, flush, pendingCount, failedCount } from '@/utils/offlineQueue'
+import { canInstall, install } from '@/utils/installPrompt'
 
 const router = useRouter()
 const route = useRoute()
@@ -212,6 +214,8 @@ async function submitOrder() {
   try {
     const saved = await org.orgApi('/orders', {
       method: 'POST',
+      // Réseau saturé : au-delà de 6 s la commande est gardée sur le téléphone et renvoyée (clientId = sans doublon)
+      timeout: 6000,
       body: { items: lines.map(l => ({ productId: l.productId, quantity: l.quantity })), paymentMethod: order.paymentMethod, clientId: order.clientId },
     })
     sessionStorage.setItem('lastOrder', JSON.stringify(saved))
@@ -247,6 +251,7 @@ async function logout() {
 const sync = () => flush(orgSlug, org.token)
 const setOnline = () => { online.value = true; sync(); loadMenu() }
 const setOffline = () => (online.value = false)
+const onVisible = () => { if (document.visibilityState === 'visible') sync() }
 let timer
 
 // Garde l'écran allumé pendant le service
@@ -264,6 +269,7 @@ onMounted(() => {
   window.addEventListener('online', setOnline)
   window.addEventListener('offline', setOffline)
   document.addEventListener('visibilitychange', keepAwake)
+  document.addEventListener('visibilitychange', onVisible)
   keepAwake()
 })
 
@@ -272,6 +278,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('online', setOnline)
   window.removeEventListener('offline', setOffline)
   document.removeEventListener('visibilitychange', keepAwake)
+  document.removeEventListener('visibilitychange', onVisible)
   wakeLock?.release().catch(() => {})
 })
 </script>
