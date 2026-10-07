@@ -4,6 +4,7 @@ const router = express.Router();
 const organizationController = require('../controllers/organizationController');
 const withOrganization = require('../middlewares/withOrganization');
 
+router.get('/:orgSlug/manifest.webmanifest', withOrganization, organizationController.manifest);
 router.get('/:orgSlug', withOrganization, organizationController.getOne);
 
 module.exports = router;

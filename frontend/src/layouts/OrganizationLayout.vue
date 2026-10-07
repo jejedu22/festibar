@@ -9,10 +9,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import NotFound from '../pages/NotFound.vue'
 import { useOrganizationStore } from '@/stores/organization'
+import { setOrgManifest, clearOrgManifest } from '@/utils/pwa'
 
 const route = useRoute()
 const org = useOrganizationStore()
@@ -21,11 +22,15 @@ const state = ref('ok') // ok | missing | error
 async function load() {
   try {
     state.value = (await org.loadOrganization(route.params.orgSlug)) ? 'ok' : 'missing'
+    if (state.value === 'ok') setOrgManifest(route.params.orgSlug, org.organizationName)
+    else clearOrgManifest()
   } catch {
     // Hors-ligne : on laisse la prise de commande fonctionner avec les données en cache
     state.value = org.organizationSlug === route.params.orgSlug ? 'ok' : 'error'
+    if (state.value === 'ok') setOrgManifest(route.params.orgSlug, org.organizationName)
   }
 }
 
 watch(() => route.params.orgSlug, load, { immediate: true })
+onBeforeUnmount(clearOrgManifest)
 </script>
