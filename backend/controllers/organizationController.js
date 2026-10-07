@@ -2,6 +2,7 @@
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const { serverError } = require('../utils/http');
+const withOrganization = require('../middlewares/withOrganization');
 const { MIN_PASSWORD_LENGTH } = require('../config/auth');
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -94,6 +95,7 @@ exports.update = async (req, res) => {
 
     const { changes } = await db.runAsync(`UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`, params);
     if (!changes) return res.status(404).json({ error: 'Organisation introuvable' });
+    withOrganization.invalidate();
     res.json({ updated: changes });
   } catch (err) {
     uniqueError(res, err);
@@ -114,6 +116,7 @@ exports.delete = async (req, res) => {
     }
     await db.runAsync('DELETE FROM categories WHERE organization_id = ?', [id]);
     const { changes } = await db.runAsync('DELETE FROM organizations WHERE id = ?', [id]);
+    withOrganization.invalidate();
     res.json({ deleted: changes });
   } catch (err) {
     serverError(res, err);

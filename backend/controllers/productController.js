@@ -1,6 +1,7 @@
 // backend/controllers/productController.js
 const db = require('../config/database');
 const { serverError } = require('../utils/http');
+const { invalidate: invalidateSummary } = require('./summaryController');
 
 // Valide et normalise les champs d'un produit ; renvoie un message d'erreur ou null
 function parseProduct(body = {}) {
@@ -63,6 +64,7 @@ exports.update = async (req, res) => {
       [p.name, p.price, p.categoryId, p.available, req.params.id, orgId]
     );
     if (!changes) return res.status(404).json({ error: 'Produit introuvable' });
+    invalidateSummary(orgId);
     res.json({ updated: changes });
   } catch (err) {
     serverError(res, err);

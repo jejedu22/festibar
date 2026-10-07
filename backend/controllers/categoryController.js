@@ -80,15 +80,15 @@ exports.updateOrder = async (req, res) => {
   }
 
   try {
-    let updated = 0;
-    for (const cat of order) {
-      const { changes } = await db.runAsync(
-        `UPDATE categories SET sort_order = ? WHERE id = ? AND organization_id = ?`,
-        [cat.sort_order, cat.id, orgId]
-      );
-      updated += changes;
-    }
-    res.json({ success: true, updated });
+    if (!order.length) return res.json({ success: true, updated: 0 });
+    // Une seule instruction (atomique) au lieu d'une requête par catégorie
+    const { changes } = await db.runAsync(
+      `UPDATE categories
+       SET sort_order = CASE id ${order.map(() => 'WHEN ? THEN ?').join(' ')} END
+       WHERE organization_id = ? AND id IN (${order.map(() => '?').join(',')})`,
+      [...order.flatMap(c => [c.id, c.sort_order]), orgId, ...order.map(c => c.id)]
+    );
+    res.json({ success: true, updated: changes });
   } catch (err) {
     serverError(res, err);
   }

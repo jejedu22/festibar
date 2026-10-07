@@ -30,6 +30,10 @@ async function init() {
   await db.runAsync('PRAGMA journal_mode = WAL');
   // Cache plus grand pour réduire I/O
   await db.runAsync('PRAGMA cache_size = 10000');
+  // Attend un verrou au lieu d'échouer en SQLITE_BUSY (sauvegardes, écritures concurrentes)
+  await db.runAsync('PRAGMA busy_timeout = 5000');
+  await db.runAsync('PRAGMA temp_store = MEMORY');
+  await db.runAsync('PRAGMA wal_autocheckpoint = 1000');
   // Synchro moins agressive → réduit latence (risque de perte en crash)
   await db.runAsync('PRAGMA synchronous = NORMAL');
   // Indices automatiques
@@ -150,10 +154,14 @@ async function init() {
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_orders_org ON orders(organization_id, timestamp)`);
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`);
   // Idempotence des commandes envoyées hors-ligne puis resynchronisées
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id)`);
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_products_org ON products(organization_id, category_id)`);
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`);
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_log(organization_id, id)`);
   await db.runAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_client_id ON orders(organization_id, client_id)`);
 }
 
-db.ready = init();
+db.ready = init().then(() => db.runAsync('PRAGMA optimize').catch(() => {}));
 db.ready.catch(err => {
   console.error('❌ Initialisation de la base impossible :', err);
   process.exit(1);

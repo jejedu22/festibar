@@ -2,6 +2,7 @@
 const db = require('../config/database');
 const audit = require('../utils/audit');
 const { serverError } = require('../utils/http');
+const { invalidate: invalidateSummary } = require('./summaryController');
 const { serviceDay, toLocalString, parseUtc } = require('../utils/time');
 const { STAFF_CANCEL_MINUTES } = require('../config/auth');
 
@@ -127,6 +128,7 @@ exports.create = async (req, res) => {
       throw err;
     }
 
+    invalidateSummary(orgId);
     res.status(201).json(await loadOrder(orgId, orderId));
   } catch (err) {
     serverError(res, err);
@@ -172,6 +174,7 @@ exports.cancel = async (req, res) => {
        WHERE id = ? AND organization_id = ?`,
       [role, orderId, orgId]
     );
+    invalidateSummary(orgId);
     audit(orgId, 'order.cancel', { orderId: order.id, role, details: { total: order.total } });
     res.json({ message: 'Commande annulée.' });
   } catch (err) {
@@ -200,6 +203,7 @@ exports.clearAll = async (req, res) => {
       [orgId]
     );
     await db.runAsync(`DELETE FROM orders WHERE organization_id = ?`, [orgId]);
+    invalidateSummary(orgId);
     audit(orgId, 'orders.clear_all', { role: req.auth.role, details: stats });
     res.json({ message: 'Toutes les commandes ont été supprimées.', deleted: stats.count });
   } catch (err) {
@@ -273,6 +277,7 @@ exports.removeItem = async (req, res) => {
     const newTotal = round2(row.total || 0);
     await db.runAsync(`UPDATE orders SET total = ? WHERE id = ? AND organization_id = ?`, [newTotal, orderId, orgId]);
 
+    invalidateSummary(orgId);
     audit(orgId, 'order.remove_item', { orderId: Number(orderId), role: req.auth.role, details: line });
     res.json({ total: newTotal });
   } catch (err) {
