@@ -136,6 +136,19 @@ test('administration : suppression de commandes avec confirmation, isolation ent
   assert.deepEqual(empty, {});
 });
 
+test('PWA : un manifeste par organisation, limité à sa page', async () => {
+  const r = await t.call('GET', '/organizations/bar/manifest.webmanifest');
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-type'), /manifest\+json/);
+  assert.equal(r.json.start_url, '/bar/');
+  assert.equal(r.json.scope, '/bar/');
+  assert.equal(r.json.id, '/bar/');
+  assert.match(r.json.name, /Org bar/);
+  const other = (await t.call('GET', '/organizations/autre/manifest.webmanifest')).json;
+  assert.equal(other.scope, '/autre/');
+  assert.equal((await t.call('GET', '/organizations/inconnu/manifest.webmanifest')).status, 404);
+});
+
 test('réseau : API en no-store, organisation inconnue', async () => {
   const r = await t.call('GET', '/bar/products');
   assert.equal(r.headers.get('cache-control'), 'no-store');

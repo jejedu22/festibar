@@ -2,17 +2,17 @@
 // - le shell (index.html, JS, CSS, icônes) est pré-chargé à l'installation : démarrage possible hors-ligne
 // - pages : réseau d'abord, mais bascule sur la copie locale si le serveur met plus de NAV_TIMEOUT à répondre
 // - fichiers /assets (noms versionnés) et icônes : cache d'abord
-// - API publique en lecture (carte : produits, catégories, nom de l'organisation) : réseau d'abord avec
+// - API publique en lecture (carte : produits, catégories, nom de l'organisation, manifeste de l'application) : réseau d'abord avec
 //   bascule rapide sur la dernière copie. Les routes authentifiées (commandes, ventes) ne sont JAMAIS
 //   mises en cache : elles sont gérées par l'application (file d'attente hors-ligne).
 // Les deux lignes ci-dessous sont remplacées à la compilation (vite.config.js).
 const BUILD = 'dev';
-const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const PRECACHE = ['/', '/index.html', '/icon.svg'];
 
 const CACHE = `festibar-${BUILD}`;
 const NAV_TIMEOUT = 3000;
 const API_TIMEOUT = 4000;
-const PUBLIC_API = [/^\/api\/organizations\/[^/]+$/, /^\/api\/[^/]+\/(products|categories)$/];
+const PUBLIC_API = [/^\/api\/organizations\/[^/]+(\/manifest\.webmanifest)?$/, /^\/api\/[^/]+\/(products|categories)$/];
 
 self.addEventListener('install', event => {
   event.waitUntil(

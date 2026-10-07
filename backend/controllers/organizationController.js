@@ -52,6 +52,37 @@ exports.getOne = (req, res) => {
   });
 };
 
+// --- Manifeste PWA propre à l'organisation : une application installable par structure ---
+// start_url / scope / id sont limités à /<slug>/ : l'installation depuis la page d'une structure
+// donne une application qui s'ouvre directement sur sa prise de commande.
+exports.manifest = (req, res) => {
+  db.get(`SELECT name, slug FROM organizations WHERE id = ?`, [req.organizationId], (err, row) => {
+    if (err) return serverError(res, err);
+    if (!row) return res.status(404).json({ error: 'Organisation non trouvée' });
+    const base = `/${row.slug}/`;
+    res.type('application/manifest+json').json({
+      id: base,
+      name: `${row.name} · Festibar`,
+      short_name: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
+      description: `Prise de commande de ${row.name}.`,
+      lang: 'fr',
+      start_url: base,
+      scope: base,
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: '#ffffff',
+      theme_color: '#2563eb',
+      categories: ['business', 'food', 'productivity'],
+      icons: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      ],
+    });
+  });
+};
+
 // --- Créer une organisation ---
 exports.create = async (req, res) => {
   const body = req.body || {};

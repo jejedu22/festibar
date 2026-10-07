@@ -20,7 +20,7 @@ function precacheServiceWorker() {
       if (!fs.existsSync(swPath)) return
       const assetsDir = path.join(outDir, 'assets')
       const assets = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir).sort().map(f => `/assets/${f}`) : []
-      const statics = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png']
+      const statics = ['/', '/index.html', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png']
         .filter(u => u === '/' || fs.existsSync(path.join(outDir, u)))
       const list = [...statics, ...assets]
       const build = crypto.createHash('sha1').update(list.join('|')).digest('hex').slice(0, 10)
