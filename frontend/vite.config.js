@@ -19,7 +19,10 @@ function precacheServiceWorker() {
       const swPath = path.join(outDir, 'sw.js')
       if (!fs.existsSync(swPath)) return
       const assetsDir = path.join(outDir, 'assets')
-      const assets = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir).sort().map(f => `/assets/${f}`) : []
+      const assets = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir)
+        // Polices .woff : repli pour très vieux navigateurs, inutile de les pré-charger (woff2 suffit)
+        .filter(f => !f.endsWith('.woff'))
+        .sort().map(f => `/assets/${f}`) : []
       const statics = ['/', '/index.html', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png']
         .filter(u => u === '/' || fs.existsSync(path.join(outDir, u)))
       const list = [...statics, ...assets]

@@ -11,6 +11,7 @@ import DailySalesSummaryPage from './pages/DailySalesSummaryPage.vue'
 import AdminPage from './pages/AdminPage.vue'
 import LoginPage from './pages/LoginPage.vue'
 import AdminOrdersPage from './pages/AdminOrdersPage.vue'
+import EndOfEventPage from './pages/EndOfEventPage.vue'
 
 // Pages admin global
 import AdminOrganizations from './views/AdminOrganizations.vue'
@@ -48,10 +49,11 @@ const router = createRouter({
         { path: '', component: OrderPage, meta: { role: 'staff', title: 'Commande' } },
         { path: 'summary', component: OrderSummary, meta: { role: 'staff', title: 'Récapitulatif' } },
         { path: 'login', component: LoginPage, meta: { title: 'Connexion' } },
-        { path: 'admin', component: AdminPage, meta: { role: 'manager', title: 'Produits' } },
+        { path: 'admin', component: AdminPage, meta: { role: 'manager', title: 'Carte' } },
         { path: 'categories', component: CategoriesPage, meta: { role: 'manager', title: 'Catégories' } },
         { path: 'summary/daily', component: DailySalesSummaryPage, meta: { role: 'manager', title: 'Ventes' } },
         { path: 'admin/orders', component: AdminOrdersPage, meta: { role: 'manager', title: 'Commandes' } },
+        { path: 'fin-evenement', component: EndOfEventPage, meta: { role: 'manager', title: 'Fin d’événement' } },
       ],
     },
 

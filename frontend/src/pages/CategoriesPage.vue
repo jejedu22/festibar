@@ -1,44 +1,52 @@
 <!-- frontend/src/pages/CategoriesPage.vue -->
 <template>
-  <div class="max-w-2xl mx-auto p-4">
-    <ManagerNav />
-    <h1 class="text-2xl font-bold mb-1">Catégories</h1>
-    <p class="text-sm text-gray-700 mb-4">L’ordre ci-dessous est celui de la page de commande (glisser ☰ ou flèches).</p>
-
-    <p v-if="loading" class="text-gray-600">Chargement…</p>
-    <p v-else-if="!categories.length" class="text-gray-600">Aucune catégorie.</p>
-    <ul v-else ref="list">
-      <li
-        v-for="(category, index) in categories"
-        :key="category.id"
-        class="flex items-center gap-2 border p-2 mb-2 rounded-lg bg-white"
-        :class="{ 'bg-slate-200': draggingId === category.id }"
-      >
-        <span
-          class="cursor-grab select-none px-2 text-xl touch-none"
-          aria-hidden="true"
-          @mousedown.prevent="startDrag(category.id)"
-          @touchstart.prevent="startDrag(category.id)"
-        >☰</span>
-        <span class="flex-1 truncate">{{ category.name }}</span>
-        <button type="button" class="px-2 py-1 rounded bg-gray-100 disabled:opacity-30" :disabled="index === 0" :aria-label="`Monter ${category.name}`" @click="move(index, -1)">↑</button>
-        <button type="button" class="px-2 py-1 rounded bg-gray-100 disabled:opacity-30" :disabled="index === categories.length - 1" :aria-label="`Descendre ${category.name}`" @click="move(index, 1)">↓</button>
-        <button type="button" class="bg-blue-100 px-2 py-1 rounded" :aria-label="`Renommer ${category.name}`" @click="edit(category)">✏️</button>
-        <button type="button" class="bg-red-100 px-2 py-1 rounded" :aria-label="`Supprimer ${category.name}`" @click="del(category)">🗑️</button>
-      </li>
-    </ul>
-
-    <form class="mt-4 space-y-2 bg-gray-50 border rounded-xl p-4" @submit.prevent="save">
-      <label class="block">
-        <span class="text-sm font-medium">{{ form.id ? 'Renommer la catégorie' : 'Nouvelle catégorie' }}</span>
-        <input ref="nameInput" v-model="form.name" maxlength="60" class="w-full p-2 border rounded mt-1" required />
-      </label>
-      <div class="flex gap-2">
-        <button class="flex-1 bg-green-600 text-white p-2 rounded">{{ form.id ? '💾 Enregistrer' : '➕ Ajouter' }}</button>
-        <button v-if="form.id" type="button" class="px-4 bg-gray-300 rounded" @click="cancelEdit">Annuler</button>
+  <ManagerShell>
+    <div class="space-y-5">
+      <div>
+        <h1 class="font-display font-bold text-[26px] lg:text-[32px] tracking-tight">Carte</h1>
+        <p class="text-sm text-slate-600 mt-0.5">L’ordre des catégories est celui de la page de commande : glissez la poignée ou utilisez les flèches.</p>
       </div>
-    </form>
-  </div>
+
+      <CarteTabs />
+
+      <!-- Ajout / renommage -->
+      <form class="card p-4 lg:p-5" @submit.prevent="save">
+        <label class="block">
+          <span class="label">{{ form.id ? 'Renommer la catégorie' : 'Nouvelle catégorie' }}</span>
+          <span class="flex flex-wrap gap-2">
+            <input ref="nameInput" v-model="form.name" maxlength="60" class="field flex-1 basis-52" placeholder="Ex. Bières, Softs, Restauration" required />
+            <button class="btn-primary min-h-[48px] px-5">
+              <Icon :name="form.id ? 'edit' : 'plus'" :size="18" />{{ form.id ? 'Enregistrer' : 'Ajouter' }}
+            </button>
+            <button v-if="form.id" type="button" class="btn-secondary min-h-[48px]" @click="cancelEdit">Annuler</button>
+          </span>
+        </label>
+      </form>
+
+      <p v-if="loading" class="text-slate-600">Chargement…</p>
+      <p v-else-if="!categories.length" class="card p-8 text-center text-slate-600">Aucune catégorie pour le moment.</p>
+      <ul v-else ref="list" class="card overflow-hidden">
+        <li
+          v-for="(category, index) in categories"
+          :key="category.id"
+          class="flex items-center gap-1.5 pl-1.5 pr-2 lg:pr-4 py-2 border-t border-slate-100 first:border-t-0 min-h-[64px]"
+          :class="draggingId === category.id ? 'bg-blue-50 shadow-inner' : form.id === category.id ? 'bg-blue-50' : 'bg-white'"
+        >
+          <span
+            class="w-11 h-11 inline-flex items-center justify-center cursor-grab select-none touch-none text-slate-500"
+            aria-hidden="true"
+            @mousedown.prevent="startDrag(category.id)"
+            @touchstart.prevent="startDrag(category.id)"
+          ><Icon name="grip" :stroke="3" /></span>
+          <span class="flex-1 min-w-0 font-semibold break-words">{{ category.name }}</span>
+          <button type="button" class="icon-btn disabled:opacity-30" :disabled="index === 0" :aria-label="`Monter ${category.name}`" @click="move(index, -1)"><Icon name="chevronUp" :size="18" /></button>
+          <button type="button" class="icon-btn disabled:opacity-30" :disabled="index === categories.length - 1" :aria-label="`Descendre ${category.name}`" @click="move(index, 1)"><Icon name="chevronDown" :size="18" /></button>
+          <button type="button" class="icon-btn" :aria-label="`Renommer ${category.name}`" @click="edit(category)"><Icon name="edit" :size="18" /></button>
+          <button type="button" class="icon-btn border-red-200 text-red-700 hover:bg-red-50" :aria-label="`Supprimer ${category.name}`" @click="del(category)"><Icon name="trash" :size="18" /></button>
+        </li>
+      </ul>
+    </div>
+  </ManagerShell>
 </template>
 
 <script setup>
@@ -47,7 +55,9 @@ import { useRoute } from 'vue-router'
 import { useOrganizationStore } from '@/stores/organization'
 import { useUiStore } from '@/stores/ui'
 import { api } from '@/utils/api'
-import ManagerNav from '@/components/ManagerNav.vue'
+import ManagerShell from '@/components/ManagerShell.vue'
+import CarteTabs from '@/components/CarteTabs.vue'
+import Icon from '@/components/Icon.vue'
 
 const route = useRoute()
 const orgSlug = route.params.orgSlug
