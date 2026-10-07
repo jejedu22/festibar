@@ -22,7 +22,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     PORT=3001 \
-    SQLITE_FILE=/app/data/bar.db
+    SQLITE_FILE=/app/data/bar.db \
+    UV_THREADPOOL_SIZE=8 \
+    NODE_OPTIONS=--max-old-space-size=144
 
 COPY --from=backend-deps /app/node_modules ./node_modules
 COPY backend/ ./

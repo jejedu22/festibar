@@ -6,7 +6,7 @@ const { serviceDay } = require('../utils/time');
 const round2 = n => Math.round(n * 100) / 100;
 
 // Agrège les ventes par journée de service (commandes annulées exclues des totaux)
-async function computeDaily(orgId) {
+async function computeDailyUncached(orgId) {
   const orders = await db.allAsync(
     `SELECT id, timestamp, total, status, payment_method FROM orders WHERE organization_id = ?`,
     [orgId]
@@ -66,7 +66,29 @@ async function computeDaily(orgId) {
     .sort((a, b) => b.day.localeCompare(a.day));
 }
 
+// Cache par organisation : le récapitulatif relit toutes les commandes, on évite de le recalculer
+// à chaque appel (plusieurs gestionnaires / écrans). Invalidé à chaque modification des ventes ;
+// la durée de vie courte sert de filet de sécurité. Les calculs simultanés sont mutualisés.
+const CACHE_TTL_MS = 30 * 1000;
+const cache = new Map(); // orgId -> { promise, expires }
+
+function computeDaily(orgId) {
+  const hit = cache.get(orgId);
+  if (hit && hit.expires > Date.now()) return hit.promise;
+  const promise = computeDailyUncached(orgId);
+  const entry = { promise, expires: Date.now() + CACHE_TTL_MS };
+  cache.set(orgId, entry);
+  promise.catch(() => { if (cache.get(orgId) === entry) cache.delete(orgId); });
+  return promise;
+}
+
+// À appeler après toute modification de commandes ou de produits (nom / prix)
+function invalidate(orgId) {
+  cache.delete(orgId);
+}
+
 exports.computeDaily = computeDaily;
+exports.invalidate = invalidate;
 
 exports.today = async (req, res) => {
   try {

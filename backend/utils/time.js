@@ -12,13 +12,16 @@ function parseUtc(ts) {
 }
 
 // Composants date/heure locaux dans le fuseau de l'événement
+// (le formateur Intl est coûteux à construire : une seule instance partagée)
+const formatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TIMEZONE,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+  hourCycle: 'h23',
+});
+
 function localParts(date) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIMEZONE,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
+  const parts = formatter.formatToParts(date);
   return Object.fromEntries(parts.map(p => [p.type, p.value]));
 }
 

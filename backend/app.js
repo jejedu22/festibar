@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const path = require('path');
 const routes = require('./routes');
 
@@ -30,7 +31,16 @@ app.use(
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 if (allowedOrigins.length) app.use(cors({ origin: allowedOrigins }));
 
+// Compression gzip des réponses (JSON, JS, CSS) : gros gain sur réseau mobile / Wi-Fi d'événement
+app.use(compression({ threshold: 1024 }));
+
 app.use(express.json({ limit: '100kb' }));
+
+// Les réponses API sont dynamiques : jamais de cache navigateur / proxy
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
 // Routes API
 app.use('/api', routes);
@@ -38,7 +48,10 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Route inconnue' }))
 
 // Servir les fichiers statiques du frontend compilé
 app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1h',
   setHeaders(res, filePath) {
+    // Fichiers Vite empreints (nom contenant le hash) : cache longue durée
+    if (filePath.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     // Le service worker et index.html ne doivent pas être mis en cache par le navigateur
     if (filePath.endsWith('sw.js') || filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
   },
