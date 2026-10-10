@@ -319,7 +319,7 @@ Mesures sur le profil de production du `docker-compose.yml` (**0,5 CPU, 192 Mo**
 | 200 serveurs actifs (3 commandes/min chacun) | commande en moins de 50 ms (p95), CPU à 26 % du plafond |
 | Marge avant saturation | environ 4× (800 serveurs actifs : p95 inférieur à 250 ms) |
 | Débit maximal de création de commandes | environ 135 par seconde |
-| 20 exports Excel simultanés | mémoire stable (~70 Mo), tous livrés |
+| 20 exports Excel simultanés | mémoire stable (70 à 115 Mo), tous livrés ; la prise de commande ralentit pendant la rafale (environ 15 s, jusqu'à 4 s par commande) car le CPU est saturé |
 | 220 appareils qui se connectent en même temps | voir ci-dessous |
 
 ### Ouverture : connexions massives
