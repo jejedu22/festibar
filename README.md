@@ -53,7 +53,7 @@ Une même installation peut accueillir plusieurs organisations (associations, co
 - **Catégories** : création, renommage, ordre d’affichage par glisser-déposer ou flèches
 - **Commandes** : historique par soirée, heure, moyen de paiement, annulation (conservée et tracée), retrait d’une ligne
 - **Ventes** : total par soirée, par moyen de paiement et par produit, nombre de commandes et d’annulations
-- **Export Excel** : toutes les commandes (statut, paiement, heure locale) + journal des annulations et suppressions
+- **Export Excel** : toutes les commandes (statut, paiement, heure locale) + journal des annulations et suppressions. Le fichier est généré en flux : l’export de 20 structures simultanées ne sature pas le serveur
 - **Remise à zéro** avant un nouvel événement : export proposé, puis confirmation en tapant l’identifiant de l’organisation
 
 ### Administration (administrateur de l’installation)
@@ -210,6 +210,8 @@ L’application est disponible sur `https://<FESTIBAR_HOST>`. Traefik obtient le
 | `ADMIN_TOKEN_TTL` | `12h` | Durée d’une session administrateur |
 | `ORG_TOKEN_TTL` | `24h` | Durée d’une session gestionnaire ou serveur |
 | `STAFF_CANCEL_MINUTES` | `15` | Délai pendant lequel un serveur peut annuler une commande |
+| `BCRYPT_CONCURRENCY` | `2` | Nombre maximal de vérifications de mot de passe en parallèle (voir « Ouverture : connexions massives ») |
+| `EXPORT_CONCURRENCY` | `2` | Nombre maximal d’exports Excel générés en même temps ; les autres attendent leur tour |
 | `TRUST_PROXY` | *(vide)* ; `1` en Docker | Nombre de proxys devant l’application (Traefik = 1) |
 | `ENABLE_HSTS` | `false` ; `true` en Docker | En-tête HSTS (uniquement si servi en HTTPS) |
 | `ALLOWED_ORIGINS` | *(vide)* | Domaines autorisés à appeler l’API depuis un autre site (séparés par des virgules) |
@@ -305,6 +307,31 @@ docker compose up -d
 ```bash
 docker compose down && mv data/bar.db data/bar.db.old && rm -f data/bar.db-wal data/bar.db-shm && docker compose up -d
 ```
+
+---
+
+## 📈 Charge et dimensionnement
+
+Mesures sur le profil de production du `docker-compose.yml` (**0,5 CPU, 192 Mo**), avec 20 structures de 10 serveurs, 30 produits et 1 000 commandes chacune (20 000 commandes) :
+
+| Situation | Résultat |
+|---|---|
+| 200 serveurs actifs (3 commandes/min chacun) | commande en moins de 50 ms (p95), CPU à 26 % du plafond |
+| Marge avant saturation | environ 4× (800 serveurs actifs : p95 inférieur à 250 ms) |
+| Débit maximal de création de commandes | environ 135 par seconde |
+| 20 exports Excel simultanés | mémoire stable (70 à 115 Mo), tous livrés ; la prise de commande ralentit pendant la rafale (environ 15 s, jusqu'à 4 s par commande) car le CPU est saturé |
+| 220 appareils qui se connectent en même temps | voir ci-dessous |
+
+### Ouverture : connexions massives
+
+Les mots de passe sont vérifiés avec bcrypt, volontairement coûteux (~65 ms de CPU). Les 10 serveurs d’une structure partagent le même mot de passe : seule la **première connexion** de chaque mot de passe est calculée, les suivantes réutilisent le résultat (conservé 30 minutes en mémoire, jamais le mot de passe lui-même). Changer un mot de passe invalide automatiquement l’ancien résultat. Les échecs restent comptés par la limitation des tentatives.
+
+`BCRYPT_CONCURRENCY` borne les calculs en parallèle pour laisser des threads libres au reste de l’application.
+Au-delà de 200 vérifications en attente, la connexion répond « Serveur très sollicité, réessayez dans quelques secondes » (503).
+
+### Exports Excel
+
+Le classeur est écrit ligne par ligne dans la réponse : la mémoire ne dépend pas du nombre de commandes. `EXPORT_CONCURRENCY` limite les exports simultanés (2 par défaut), les suivants attendent leur tour ; au-delà de 50 en attente, la réponse est « Trop d’exports en cours » (503).
 
 ---
 
@@ -504,6 +531,7 @@ Ces textes sont une base de travail et ne remplacent pas l’avis d’un juriste
 | Page blanche ou styles cassés derrière Traefik | La CSP du middleware `security-headers` remplace celle de l’application : autoriser `style-src 'self' 'unsafe-inline'` |
 | Connexion administrateur : « Mot de passe incorrect » alors qu’il est bon, ou « non configurée » | L’empreinte a été tronquée par Docker Compose : dans `backend/.env.local`, elle doit être **entre apostrophes** (`ADMIN_PASSWORD_HASH='$2b$12$…'`), pas entre guillemets ni sans rien. Le journal (`docker compose logs festibar`) affiche « ADMIN_PASSWORD_HASH invalide » dans ce cas. Corriger puis `docker compose up -d` (un simple `restart` ne relit pas le fichier). |
 | Tout le monde est déconnecté après un redémarrage | `JWT_SECRET` non défini (un secret temporaire est généré à chaque démarrage) |
+| « Serveur très sollicité » ou « Trop d’exports en cours » (503) | Le serveur protège ses ressources : réessayer dans quelques secondes. Si cela arrive souvent, augmenter le CPU alloué au conteneur (`cpus` dans `docker-compose.yml`) |
 | « Trop de tentatives » | Attendre 15 minutes. Si tous les utilisateurs sont bloqués ensemble, vérifier `TRUST_PROXY=1` (sinon, tous semblent venir de l’IP de Traefik) |
 | Heures décalées ou ventes après minuit sur le mauvais jour | Vérifier `APP_TIMEZONE` et `SERVICE_DAY_START_HOUR` |
 | Pas d’email pour les demandes d’accès | Lancer `docker compose exec festibar node scripts/test-mail.js` : il indique ce qui bloque. Vérifier aussi les indésirables. Les journaux affichent `📧 … envoyée par email` ou `❌ Erreur envoi mail` à chaque demande ; les demandes restent enregistrées en base. |

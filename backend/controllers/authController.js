@@ -1,9 +1,9 @@
 // backend/controllers/authController.js
 const db = require('../config/database');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { jwtSecret, ORG_TOKEN_TTL } = require('../config/auth');
 const { serverError, createLimiter } = require('../utils/http');
+const { verifyPassword, sendBusy } = require('../utils/password');
 
 // 10 échecs par IP et par organisation sur 15 minutes
 const limiter = createLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
@@ -29,8 +29,8 @@ exports.login = async (req, res) => {
 
     // Mot de passe gestionnaire, sinon mot de passe serveurs
     let role = null;
-    if (await bcrypt.compare(password, org.password)) role = 'manager';
-    else if (org.staff_password && (await bcrypt.compare(password, org.staff_password))) role = 'staff';
+    if (await verifyPassword(password, org.password)) role = 'manager';
+    else if (org.staff_password && (await verifyPassword(password, org.staff_password))) role = 'staff';
 
     if (!role) {
       limiter.hit(key);
@@ -44,6 +44,7 @@ exports.login = async (req, res) => {
     });
     res.json({ token, role, id: org.id, name: org.name, slug: org.slug });
   } catch (err) {
+    if (err.code === 'GATE_FULL') return sendBusy(res);
     serverError(res, err);
   }
 };

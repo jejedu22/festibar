@@ -1,9 +1,9 @@
 // backend/routes/adminAuthRoutes.js
 const express = require('express');
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { createLimiter } = require('../utils/http');
+const { verifyPassword, sendBusy } = require('../utils/password');
 const { jwtSecret, passwordHash, plainPassword, adminLoginConfigured, TOKEN_TTL } = require('../config/auth');
 
 const router = express.Router();
@@ -12,7 +12,7 @@ const router = express.Router();
 const limiter = createLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
 
 async function checkPassword(password) {
-  if (passwordHash) return bcrypt.compare(password, passwordHash);
+  if (passwordHash) return verifyPassword(password, passwordHash);
   if (plainPassword) {
     // Comparaison en temps constant (sur des empreintes de même longueur)
     const a = crypto.createHash('sha256').update(password).digest();
@@ -40,7 +40,14 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Mot de passe requis' });
   }
 
-  if (!(await checkPassword(password))) {
+  let valid;
+  try {
+    valid = await checkPassword(password);
+  } catch (err) {
+    if (err.code === 'GATE_FULL') return sendBusy(res);
+    throw err;
+  }
+  if (!valid) {
     limiter.hit(ip);
     console.warn(`Échec de connexion administrateur (IP ${ip})`);
     return res.status(401).json({ error: 'Mot de passe incorrect' });
