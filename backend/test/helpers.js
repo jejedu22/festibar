@@ -53,7 +53,7 @@ async function start() {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  return { call, createOrg, login, stop, db };
+  return { call, createOrg, login, stop, db, base };
 }
 
 module.exports = { start };
