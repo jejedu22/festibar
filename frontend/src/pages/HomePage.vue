@@ -1,46 +1,65 @@
 <!-- frontend/src/pages/HomePage.vue -->
 <template>
-  <main class="p-6 max-w-3xl mx-auto">
-    <!-- Un seul h1, avec le nom et ce que fait le service -->
-    <h1 class="text-center mb-6">
-      <span class="block text-4xl font-bold mb-2"><span aria-hidden="true">🍻</span> Festibar</span>
-      <span class="block text-lg font-normal">
-        Prise de commande pour buvettes de festivals et d’événements associatifs
-      </span>
-    </h1>
-    <p class="text-lg mb-6 text-center">
-      Les bénévoles prennent les commandes sur leur téléphone en quelques appuis, même quand le réseau sature.
-      Le gestionnaire prépare la carte, suit les ventes de la soirée et exporte tout dans un fichier Excel.
-    </p>
+  <main>
+    <!-- Bandeau d'accueil : un seul h1, avec le nom et ce que fait le service -->
+    <header class="bg-gradient-to-br from-blue-700 to-indigo-800 text-white">
+      <div class="max-w-3xl mx-auto px-6 py-12 text-center">
+        <h1 class="mb-5">
+          <span class="block text-5xl font-bold mb-3"><span aria-hidden="true">🍻</span> Festibar</span>
+          <span class="block text-xl font-normal">
+            Prise de commande pour buvettes de festivals et d’événements associatifs
+          </span>
+        </h1>
+        <p class="text-lg mb-8 text-blue-50">
+          Fini les additions à la main : vos bénévoles saisissent les commandes sur leur téléphone, même quand le réseau
+          sature, et le gestionnaire suit les ventes de la soirée avant d’exporter tout dans un fichier Excel.
+        </p>
+        <a href="#contact" class="inline-block px-6 py-3 bg-white text-blue-800 font-semibold rounded-lg shadow hover:bg-blue-50">
+          Demander un accès
+        </a>
+        <p class="mt-3 text-sm text-blue-100">Sans installation : ça s’ouvre dans le navigateur du téléphone</p>
+      </div>
+    </header>
 
-    <!-- Contenu à garder identique à PUBLIC_PAGES['/'] de backend/utils/seo.js (repli pour les robots sans JavaScript) -->
-    <section class="bg-gray-100 rounded-xl p-6 shadow-sm space-y-3 mb-8" aria-labelledby="features-title">
-      <h2 id="features-title" class="text-2xl font-semibold">Fonctionnalités</h2>
-      <ul class="list-disc list-inside space-y-1">
-        <li v-for="point in points" :key="point">{{ point }}</li>
-      </ul>
-      <p class="text-sm text-gray-700">
-        Festibar est un outil d’aide à la prise de commande : il ne constitue pas un logiciel de caisse certifié
-        (<router-link to="/cgu" class="underline">voir les conditions</router-link>).
-      </p>
-    </section>
+    <div class="p-6 max-w-3xl mx-auto">
+      <!-- Contenu à garder identique à PUBLIC_PAGES['/'] de backend/utils/seo.js (repli pour les robots sans JavaScript) -->
+      <section class="mb-10" aria-labelledby="features-title">
+        <h2 id="features-title" class="text-2xl font-semibold mb-4 text-center">Fonctionnalités</h2>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          <li
+            v-for="(point, i) in points"
+            :key="point"
+            class="flex items-start gap-3 bg-gray-100 rounded-xl p-4 shadow-sm"
+          >
+            <span class="text-2xl" aria-hidden="true">{{ icons[i] }}</span>
+            <span>{{ point }}</span>
+          </li>
+        </ul>
+        <p class="text-sm text-gray-700 mt-3">
+          Festibar est un outil d’aide à la prise de commande : il ne constitue pas un logiciel de caisse certifié
+          (<router-link to="/cgu" class="underline">voir les conditions</router-link>).
+        </p>
+      </section>
 
-    <section class="mb-8" aria-labelledby="for-who-title">
-      <h2 id="for-who-title" class="text-2xl font-semibold mb-2">Pour qui ?</h2>
-      <ul class="list-disc list-inside space-y-1">
-        <li v-for="item in forWho" :key="item">{{ item }}</li>
-      </ul>
-    </section>
+      <section class="mb-10" aria-labelledby="how-title">
+        <h2 id="how-title" class="text-2xl font-semibold mb-4 text-center">Comment ça marche ?</h2>
+        <ol class="space-y-3">
+          <li v-for="(step, i) in steps" :key="step" class="flex items-start gap-4 bg-white rounded-xl shadow p-4">
+            <span class="flex-none w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center" aria-hidden="true">{{ i + 1 }}</span>
+            <span>{{ step }}</span>
+          </li>
+        </ol>
+      </section>
 
-    <section class="mb-8" aria-labelledby="how-title">
-      <h2 id="how-title" class="text-2xl font-semibold mb-2">Comment ça marche ?</h2>
-      <ol class="list-decimal list-inside space-y-1">
-        <li v-for="step in steps" :key="step">{{ step }}</li>
-      </ol>
-    </section>
+      <section class="mb-10" aria-labelledby="for-who-title">
+        <h2 id="for-who-title" class="text-2xl font-semibold mb-4 text-center">Pour qui ?</h2>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          <li v-for="item in forWho" :key="item" class="bg-gray-100 rounded-xl p-4 text-center">{{ item }}</li>
+        </ul>
+      </section>
 
     <!-- Formulaire de contact -->
-    <section class="bg-white rounded-xl shadow-lg p-6" aria-labelledby="contact-title">
+    <section id="contact" class="bg-white rounded-xl shadow-lg p-6 scroll-mt-4" aria-labelledby="contact-title">
       <h2 id="contact-title" class="text-2xl font-semibold mb-4">📩 Demander un accès</h2>
 
       <p v-if="submitted" class="text-green-700 font-semibold" role="status">
@@ -79,7 +98,8 @@
       </form>
     </section>
 
-    <LegalFooter />
+      <LegalFooter />
+    </div>
   </main>
 </template>
 
@@ -89,12 +109,13 @@ import { api } from '@/utils/api'
 import { useLegalInfo } from '@/utils/legal'
 import LegalFooter from '@/components/LegalFooter.vue'
 
+const icons = ['📱', '💶', '📶', '🔑', '📊']
 const points = [
-  'Prise de commande sur téléphone, en quelques appuis',
-  'Calcul du rendu de monnaie, paiement en espèces ou par carte',
-  'Fonctionne même en cas de coupure réseau',
-  'Accès séparés pour les serveurs et pour le gestionnaire',
-  'Ventes par soirée, export Excel et historique des annulations',
+  'Une commande prise en quelques appuis, même quand la file s’allonge',
+  'Rendu de monnaie calculé pour vous, paiement en espèces ou par carte',
+  'Continue de fonctionner sans réseau : les commandes partent dès que la connexion revient',
+  'Un accès pour les serveurs, un autre pour le gestionnaire',
+  'Ventes de chaque soirée, export Excel et historique des annulations',
 ]
 const forWho = [
   'Associations et comités des fêtes qui tiennent une buvette',
