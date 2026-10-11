@@ -21,6 +21,8 @@ services:
       SQLITE_FILE: /app/data/bar.db
       # Traefik est le seul proxy devant l'application : vraie IP client pour les limites de tentatives
       TRUST_PROXY: 1
+      # Adresse publique du site : liens canoniques, sitemap.xml et aperçus de partage
+      PUBLIC_URL: https://${FESTIBAR_HOST}
       ENABLE_HSTS: "true"
     volumes:
       # Base SQLite et sauvegardes automatiques persistées sur l'hôte (./data/bar.db, ./data/backups/)

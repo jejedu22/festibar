@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import OrganizationLayout from './layouts/OrganizationLayout.vue'
 import { isAdminAuthenticated } from './utils/adminAuth'
 import { useOrganizationStore } from './stores/organization'
+import { applyHead } from './utils/head'
 
 // Pages organisation
 import OrderPage from './pages/OrderPage.vue'
@@ -28,10 +29,44 @@ const router = createRouter({
   history: createWebHistory(),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
-    { path: '/', component: HomePage, meta: { title: 'Festibar' } },
-    { path: '/mentions-legales', component: LegalNoticePage, meta: { title: 'Mentions légales' } },
-    { path: '/confidentialite', component: PrivacyPage, meta: { title: 'Confidentialité' } },
-    { path: '/cgu', component: TermsPage, meta: { title: 'Conditions d’utilisation' } },
+    // Pages publiques indexables : titres et descriptions à garder alignés avec backend/utils/seo.js
+    {
+      path: '/',
+      component: HomePage,
+      meta: {
+        title: 'Festibar',
+        documentTitle: 'Festibar : prise de commande pour buvettes de festivals',
+        description: 'Prise de commande pour buvettes de festivals et événements associatifs : sur téléphone, même sans réseau, avec rendu de monnaie et export des ventes.',
+        index: true,
+      },
+    },
+    {
+      path: '/mentions-legales',
+      component: LegalNoticePage,
+      meta: {
+        title: 'Mentions légales',
+        description: 'Mentions légales de Festibar : éditeur, hébergeur et nature du service, un outil d’aide à la prise de commande qui n’est pas un logiciel de caisse certifié.',
+        index: true,
+      },
+    },
+    {
+      path: '/confidentialite',
+      component: PrivacyPage,
+      meta: {
+        title: 'Confidentialité',
+        description: 'Politique de confidentialité de Festibar : données traitées, durée de conservation, stockage dans le navigateur et exercice de vos droits (RGPD).',
+        index: true,
+      },
+    },
+    {
+      path: '/cgu',
+      component: TermsPage,
+      meta: {
+        title: 'Conditions d’utilisation',
+        description: 'Conditions générales d’utilisation de Festibar : accès au service, obligations des organisations, disponibilité des données et responsabilité.',
+        index: true,
+      },
+    },
 
     { path: '/admin/auth/login', component: AdminLoginPage, meta: { title: 'Connexion admin' } },
     {
@@ -70,8 +105,6 @@ router.beforeEach(to => {
   return { path: `/${to.params.orgSlug}/login`, query: { redirect: to.fullPath } }
 })
 
-router.afterEach(to => {
-  document.title = to.meta.title ? `${to.meta.title} · Festibar` : 'Festibar'
-})
+router.afterEach(to => applyHead(to.meta, to.path))
 
 export default router
