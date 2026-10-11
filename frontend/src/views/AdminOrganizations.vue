@@ -229,7 +229,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '@/utils/api'
-import { getAdminToken, clearAdminToken } from '@/utils/adminAuth'
+import { getAdminToken, logoutAdmin } from '@/utils/adminAuth'
 import { useUiStore } from '@/stores/ui'
 import { initials } from '@/utils/format'
 import { generatePassword, copyText } from '@/utils/password'
@@ -368,8 +368,8 @@ async function del(o) {
   }
 }
 
-function logout() {
-  clearAdminToken()
+async function logout() {
+  await logoutAdmin()
   router.push('/')
 }
 

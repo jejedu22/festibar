@@ -1,8 +1,9 @@
 // backend/config/auth.js
 // Configuration de l'authentification (administrateur global et organisations)
 const crypto = require('crypto');
+const { base32Decode } = require('../utils/totp');
 
-const TOKEN_TTL = process.env.ADMIN_TOKEN_TTL || '12h';
+const TOKEN_TTL = process.env.ADMIN_TOKEN_TTL || '8h';
 const ORG_TOKEN_TTL = process.env.ORG_TOKEN_TTL || '24h';
 
 // Durée pendant laquelle un serveur peut annuler une commande qu'il vient de saisir
@@ -52,7 +53,27 @@ if (!adminLoginConfigured) {
   console.warn('⚠️  ADMIN_PASSWORD en clair utilisé : préférez ADMIN_PASSWORD_HASH (node scripts/hash-password.js).');
 }
 
+// Double authentification (TOTP) facultative : secret base32 d'au moins 16 caractères (node scripts/totp-secret.js)
+let totpSecret = null;
+const rawTotp = (process.env.ADMIN_TOTP_SECRET || '').trim().replace(/^(['"])(.*)\1$/, '$2');
+if (rawTotp) {
+  const key = base32Decode(rawTotp);
+  if (key && key.length >= 10) {
+    totpSecret = rawTotp;
+  } else {
+    console.error('❌ ADMIN_TOTP_SECRET invalide (base32 de 16 caractères minimum) : double authentification désactivée. Générer : node scripts/totp-secret.js');
+  }
+}
+
+// Empreinte des identifiants : liée aux jetons admin, elle les invalide dès que le mot de passe
+// ou le secret de double authentification change (sans elle, une session volée survivrait au changement).
+const adminFingerprint = crypto
+  .createHmac('sha256', jwtSecret)
+  .update(`${passwordHash || plainPassword || ''}\n${totpSecret || ''}`)
+  .digest('hex')
+  .slice(0, 32);
+
 module.exports = {
-  jwtSecret, passwordHash, plainPassword, adminLoginConfigured, TOKEN_TTL,
+  jwtSecret, passwordHash, plainPassword, adminLoginConfigured, totpSecret, adminFingerprint, TOKEN_TTL,
   ORG_TOKEN_TTL, STAFF_CANCEL_MINUTES, MIN_PASSWORD_LENGTH,
 };
