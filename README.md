@@ -208,7 +208,8 @@ L’application est disponible sur `https://<FESTIBAR_HOST>`. Traefik obtient le
 | `JWT_SECRET` | *aléatoire au démarrage* | Secret de signature des sessions. **À définir** : sinon, toutes les sessions sont perdues à chaque redémarrage. |
 | `ADMIN_PASSWORD_HASH` | — | Empreinte bcrypt du mot de passe administrateur (`scripts/hash-password.js`). Garder les apostrophes : `'$2b$12$…'` |
 | `ADMIN_PASSWORD` | — | Ancien mot de passe en clair, accepté seulement si `ADMIN_PASSWORD_HASH` est vide (avertissement au démarrage) |
-| `ADMIN_TOKEN_TTL` | `12h` | Durée d’une session administrateur |
+| `ADMIN_TOTP_SECRET` | — | Secret de double authentification de l’administration (`scripts/totp-secret.js`). Vide = mot de passe seul |
+| `ADMIN_TOKEN_TTL` | `8h` | Durée d’une session administrateur |
 | `ORG_TOKEN_TTL` | `24h` | Durée d’une session gestionnaire ou serveur |
 | `STAFF_CANCEL_MINUTES` | `15` | Délai pendant lequel un serveur peut annuler une commande |
 | `BCRYPT_CONCURRENCY` | `2` | Nombre maximal de vérifications de mot de passe en parallèle (voir « Ouverture : connexions massives ») |
@@ -405,6 +406,7 @@ npm run dev                                    # backend :3001 + frontend :8001
 │   ├── middlewares/             # adminAuth, orgAuth (rôles), withOrganization (slug → id)
 │   ├── routes/                  # Routes /api
 │   ├── scripts/hash-password.js # Empreinte du mot de passe administrateur
+│   ├── scripts/totp-secret.js   # Secret de double authentification administrateur
 │   ├── utils/                   # Sauvegardes, journal d'audit, fuseau horaire, limiteur…
 │   └── public/                  # Frontend compilé (utilisé hors Docker)
 ├── frontend/                    # Application Vue 3
@@ -516,9 +518,15 @@ Les routes protégées attendent l’en-tête `Authorization: Bearer <jeton>`.
 - **Mots de passe** : jamais stockés en clair (bcrypt). 8 caractères minimum pour les organisations, gestionnaire et serveurs différents.
 - **Sessions** : jetons signés (JWT), limités à une organisation et à un rôle, avec expiration.
 - **Limitation des tentatives** :
-  - connexion administrateur : 5 échecs par IP sur 15 min ;
+  - connexion administrateur : 5 échecs par IP sur 15 min, et 30 échecs sur 15 min toutes IP confondues (attaque répartie) ;
   - connexion d’organisation : 10 échecs sur 15 min ;
   - formulaire de contact : 3 demandes par heure, avec un champ piège anti-robots.
+- **Administration** (gestion des structures) :
+  - **double authentification facultative** (TOTP, application d'authentification) : voir ci-dessous ; un code ne sert qu'une fois, et la réponse ne dit pas si c'est le mot de passe ou le code qui est faux ;
+  - la session est liée aux identifiants : changer `ADMIN_PASSWORD_HASH` ou `ADMIN_TOTP_SECRET` déconnecte toutes les sessions ;
+  - **Déconnexion** révoque la session côté serveur (un jeton copié ne sert plus) ;
+  - le jeton n'est gardé que dans l'onglet (`sessionStorage`) et dure 8 h par défaut ;
+  - connexions réussies, échecs et blocages sont inscrits dans le journal du serveur (`docker compose logs festibar`).
 - **Validation côté serveur** : quantités entières de 1 à 99, produits existants et disponibles, prix toujours lus en base.
 - **Traçabilité** : les commandes annulées sont conservées, et les annulations, retraits de ligne et remises à zéro sont inscrits dans un journal.
 - **En-têtes** : helmet (Content-Security-Policy, X-Frame-Options…), HSTS en production. CORS fermé par défaut, messages d’erreur sans détail technique.
@@ -526,6 +534,14 @@ Les routes protégées attendent l’en-tête `Authorization: Bearer <jeton>`.
   - un `JWT_SECRET` long et secret ;
   - changer les mots de passe entre deux saisons ;
   - ne jamais committer les fichiers `.env*`.
+
+### Activer la double authentification de l'administration
+
+```bash
+docker compose exec festibar node scripts/totp-secret.js
+```
+
+Saisissez la clé affichée dans une application d'authentification (« saisir une clé de configuration », type *basé sur l'heure* : Aegis, FreeOTP, Google Authenticator, Bitwarden, 1Password…), puis ajoutez `ADMIN_TOTP_SECRET=…` à `backend/.env.local` et relancez avec `docker compose up -d`. La page de connexion demande alors le mot de passe **et** le code à 6 chiffres. Conservez la clé dans un gestionnaire de mots de passe : en cas de perte du téléphone, retirez la variable pour désactiver la double authentification (le mot de passe reste exigé).
 
 Une faille ? Merci de la signaler en privé au mainteneur plutôt que dans une issue publique.
 

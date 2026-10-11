@@ -112,6 +112,12 @@ async function init() {
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Sessions administrateur révoquées (déconnexion) jusqu'à leur expiration naturelle
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS revoked_admin_tokens (
+    jti TEXT PRIMARY KEY,
+    expires_at INTEGER NOT NULL
+  )`);
+
   // --- Migrations des bases existantes ---
   // Toute colonne utilisée par l'application est ajoutée si elle manque (bases créées par
   // d'anciennes versions). ALTER TABLE ne permet pas NOT NULL sans valeur par défaut :
