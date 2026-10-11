@@ -23,13 +23,13 @@ const PUBLIC_PAGES = {
       'Prise de commande pour buvettes de festivals et événements associatifs : sur téléphone, même sans réseau, avec rendu de monnaie et export des ventes.',
     h1: 'Festibar : prise de commande pour buvettes de festivals et d’événements associatifs',
     intro:
-      'Les bénévoles prennent les commandes sur leur téléphone en quelques appuis, même quand le réseau sature. Le gestionnaire prépare la carte, suit les ventes de la soirée et exporte tout dans un fichier Excel.',
+      'Fini les additions à la main : vos bénévoles saisissent les commandes sur leur téléphone, même quand le réseau sature, et le gestionnaire suit les ventes de la soirée avant d’exporter tout dans un fichier Excel.',
     points: [
-      'Prise de commande sur téléphone, en quelques appuis',
-      'Calcul du rendu de monnaie, paiement en espèces ou par carte',
-      'Fonctionne même en cas de coupure réseau',
-      'Accès séparés pour les serveurs et pour le gestionnaire',
-      'Ventes par soirée, export Excel et historique des annulations',
+      'Une commande prise en quelques appuis, même quand la file s’allonge',
+      'Rendu de monnaie calculé pour vous, paiement en espèces ou par carte',
+      'Continue de fonctionner sans réseau : les commandes partent dès que la connexion revient',
+      'Un accès pour les serveurs, un autre pour le gestionnaire',
+      'Ventes de chaque soirée, export Excel et historique des annulations',
     ],
     forWho: [
       'Associations et comités des fêtes qui tiennent une buvette',
