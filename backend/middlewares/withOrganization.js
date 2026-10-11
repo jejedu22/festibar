@@ -27,4 +27,16 @@ function middleware(req, res, next) {
 
 middleware.invalidate = () => cache.clear();
 
+// Une structure existe-t-elle ? (même cache que le middleware ; sert à distinguer, côté serveur,
+// une page de structure d'une adresse inexistante)
+middleware.exists = async slug => {
+  const hit = cache.get(slug);
+  if (hit && hit.expires > Date.now()) return true;
+  const row = await db.getAsync('SELECT id FROM organizations WHERE slug = ?', [slug]);
+  if (!row) return false;
+  if (cache.size >= MAX_ENTRIES) cache.clear();
+  cache.set(slug, { id: row.id, expires: Date.now() + TTL_MS });
+  return true;
+};
+
 module.exports = middleware;

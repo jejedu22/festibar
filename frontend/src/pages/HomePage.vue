@@ -1,25 +1,43 @@
 <!-- frontend/src/pages/HomePage.vue -->
 <template>
-  <div class="p-6 max-w-3xl mx-auto">
-    <h1 class="text-4xl font-bold mb-4 text-center">🍻 Festibar</h1>
+  <main class="p-6 max-w-3xl mx-auto">
+    <!-- Un seul h1, avec le nom et ce que fait le service -->
+    <h1 class="text-center mb-6">
+      <span class="block text-4xl font-bold mb-2"><span aria-hidden="true">🍻</span> Festibar</span>
+      <span class="block text-lg font-normal">
+        Prise de commande pour buvettes de festivals et d’événements associatifs
+      </span>
+    </h1>
     <p class="text-lg mb-6 text-center">
-      La prise de commande simple et rapide pour les buvettes de festivals et d’événements associatifs.
+      Les bénévoles prennent les commandes sur leur téléphone en quelques appuis, même quand le réseau sature.
+      Le gestionnaire prépare la carte, suit les ventes de la soirée et exporte tout dans un fichier Excel.
     </p>
 
-    <div class="bg-gray-100 rounded-xl p-6 shadow-sm space-y-3 mb-8">
-      <h2 class="text-2xl font-semibold">Fonctionnalités</h2>
+    <!-- Contenu à garder identique à PUBLIC_PAGES['/'] de backend/utils/seo.js (repli pour les robots sans JavaScript) -->
+    <section class="bg-gray-100 rounded-xl p-6 shadow-sm space-y-3 mb-8" aria-labelledby="features-title">
+      <h2 id="features-title" class="text-2xl font-semibold">Fonctionnalités</h2>
       <ul class="list-disc list-inside space-y-1">
-        <li>Prise de commande sur téléphone, en quelques appuis</li>
-        <li>Calcul du rendu de monnaie, espèces ou carte</li>
-        <li>Fonctionne même en cas de coupure réseau</li>
-        <li>Accès séparés pour les serveurs et le gestionnaire</li>
-        <li>Ventes par soirée, export Excel, historique des annulations</li>
+        <li v-for="point in points" :key="point">{{ point }}</li>
       </ul>
       <p class="text-sm text-gray-700">
         Festibar est un outil d’aide à la prise de commande : il ne constitue pas un logiciel de caisse certifié
         (<router-link to="/cgu" class="underline">voir les conditions</router-link>).
       </p>
-    </div>
+    </section>
+
+    <section class="mb-8" aria-labelledby="for-who-title">
+      <h2 id="for-who-title" class="text-2xl font-semibold mb-2">Pour qui ?</h2>
+      <ul class="list-disc list-inside space-y-1">
+        <li v-for="item in forWho" :key="item">{{ item }}</li>
+      </ul>
+    </section>
+
+    <section class="mb-8" aria-labelledby="how-title">
+      <h2 id="how-title" class="text-2xl font-semibold mb-2">Comment ça marche ?</h2>
+      <ol class="list-decimal list-inside space-y-1">
+        <li v-for="step in steps" :key="step">{{ step }}</li>
+      </ol>
+    </section>
 
     <!-- Formulaire de contact -->
     <section class="bg-white rounded-xl shadow-lg p-6" aria-labelledby="contact-title">
@@ -62,7 +80,7 @@
     </section>
 
     <LegalFooter />
-  </div>
+  </main>
 </template>
 
 <script setup>
@@ -70,6 +88,23 @@ import { reactive, ref, computed } from 'vue'
 import { api } from '@/utils/api'
 import { useLegalInfo } from '@/utils/legal'
 import LegalFooter from '@/components/LegalFooter.vue'
+
+const points = [
+  'Prise de commande sur téléphone, en quelques appuis',
+  'Calcul du rendu de monnaie, paiement en espèces ou par carte',
+  'Fonctionne même en cas de coupure réseau',
+  'Accès séparés pour les serveurs et pour le gestionnaire',
+  'Ventes par soirée, export Excel et historique des annulations',
+]
+const forWho = [
+  'Associations et comités des fêtes qui tiennent une buvette',
+  'Festivals, fêtes de village, tournois et autres événements',
+]
+const steps = [
+  'Demandez un accès pour votre structure avec le formulaire de contact.',
+  'Le gestionnaire prépare la carte : catégories, produits et prix.',
+  'Les bénévoles prennent les commandes sur leur téléphone ; le gestionnaire suit les ventes et exporte les données en Excel.',
+]
 
 const form = reactive({ name: '', email: '', message: '', website: '' })
 const submitted = ref(false)

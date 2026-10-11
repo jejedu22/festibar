@@ -22,14 +22,15 @@ Une même installation peut accueillir plusieurs organisations (associations, co
 4. [Le jour de l’événement](#-le-jour-de-lévénement)
 5. [Configuration](#-configuration)
 6. [Exploitation : mises à jour, sauvegardes, restauration](#-exploitation)
-7. [Développement](#-développement)
-8. [Architecture](#-architecture)
-9. [API](#-api)
-10. [Sécurité](#-sécurité)
-11. [Mentions légales et RGPD](#-mentions-légales-et-rgpd)
-12. [Dépannage](#-dépannage)
-13. [Limites connues et pistes d’amélioration](#-limites-connues-et-pistes-damélioration)
-14. [Contribuer](#-contribuer) · [Licence](#-licence)
+7. [Référencement dans les moteurs de recherche](#-référencement-dans-les-moteurs-de-recherche)
+8. [Développement](#-développement)
+9. [Architecture](#-architecture)
+10. [API](#-api)
+11. [Sécurité](#-sécurité)
+12. [Mentions légales et RGPD](#-mentions-légales-et-rgpd)
+13. [Dépannage](#-dépannage)
+14. [Limites connues et pistes d’amélioration](#-limites-connues-et-pistes-damélioration)
+15. [Contribuer](#-contribuer) · [Licence](#-licence)
 
 ---
 
@@ -215,6 +216,7 @@ L’application est disponible sur `https://<FESTIBAR_HOST>`. Traefik obtient le
 | `TRUST_PROXY` | *(vide)* ; `1` en Docker | Nombre de proxys devant l’application (Traefik = 1) |
 | `ENABLE_HSTS` | `false` ; `true` en Docker | En-tête HSTS (uniquement si servi en HTTPS) |
 | `ALLOWED_ORIGINS` | *(vide)* | Domaines autorisés à appeler l’API depuis un autre site (séparés par des virgules) |
+| `PUBLIC_URL` | `https://<FESTIBAR_HOST>` en Docker | Adresse publique du site (sans barre finale) : liens canoniques, `sitemap.xml`, aperçus de partage. À défaut, l’adresse de la requête est utilisée |
 
 **Événement et données**
 
@@ -332,6 +334,35 @@ Au-delà de 200 vérifications en attente, la connexion répond « Serveur très
 ### Exports Excel
 
 Le classeur est écrit ligne par ligne dans la réponse : la mémoire ne dépend pas du nombre de commandes. `EXPORT_CONCURRENCY` limite les exports simultanés (2 par défaut), les suivants attendent leur tour ; au-delà de 50 en attente, la réponse est « Trop d’exports en cours » (503).
+
+---
+
+## 🔎 Référencement dans les moteurs de recherche
+
+Festibar est une application web : seules l’**accueil** et les pages légales ont vocation à apparaître dans un moteur de recherche. Tout le reste (prise de commande, gestion, administration) est privé.
+
+| Adresse | Traitement |
+|---|---|
+| `/`, `/mentions-legales`, `/confidentialite`, `/cgu` | indexables : titre, description, adresse canonique, Open Graph et Twitter Card, contenu lisible sans JavaScript ; données structurées (`WebSite`, `SoftwareApplication`) sur l’accueil |
+| `/<structure>/…`, `/admin/…` | jamais indexées : `noindex, nofollow` (balise et en-tête `X-Robots-Tag`) |
+| adresse inconnue | vrai code **404** (l’application affiche quand même sa page « introuvable ») |
+| `/api/…` | `X-Robots-Tag: noindex`, volontairement **non bloquée** dans `robots.txt` (les pages légales s’y alimentent) |
+| `/CGU`, `/cgu/`, `/index.html` | redirection permanente vers l’adresse canonique |
+| `/robots.txt`, `/sitemap.xml` | générés, avec l’adresse absolue du site (`PUBLIC_URL`) |
+
+Le serveur complète la page `index.html` à chaque requête : une application à page unique renverrait sinon le même titre, la même description et un code 200 pour toutes les adresses. L’image de partage est `frontend/public/og-image.png` (1200 × 630).
+
+### À faire une fois le site en ligne
+
+1. Vérifier `https://<domaine>/robots.txt` et `https://<domaine>/sitemap.xml`.
+2. **Google Search Console** : ajouter le domaine, puis « Sitemaps » → `sitemap.xml`. Demander l’indexation de l’accueil.
+3. **Bing Webmaster Tools** : importer le site depuis Search Console, ou l’ajouter à la main.
+4. Contrôler l’aperçu de partage (messagerie, réseaux sociaux) et le rendu dans l’outil « Inspection de l’URL » de Search Console.
+
+### Modifier les textes
+
+Les titres et descriptions des pages publiques sont à deux endroits, qui doivent rester identiques : `backend/utils/seo.js` (`PUBLIC_PAGES`, lu par les robots) et `frontend/src/router.js` (affichage dans l’application). Les textes de l’accueil (fonctionnalités, public visé, étapes) sont aussi dans `frontend/src/pages/HomePage.vue`. Un test échoue si ces fichiers divergent.
+Repères pour les résultats de recherche : titre de 60 caractères au plus, description entre 70 et 160 caractères.
 
 ---
 
@@ -532,6 +563,8 @@ Ces textes sont une base de travail et ne remplacent pas l’avis d’un juriste
 | Connexion administrateur : « Mot de passe incorrect » alors qu’il est bon, ou « non configurée » | L’empreinte a été tronquée par Docker Compose : dans `backend/.env.local`, elle doit être **entre apostrophes** (`ADMIN_PASSWORD_HASH='$2b$12$…'`), pas entre guillemets ni sans rien. Le journal (`docker compose logs festibar`) affiche « ADMIN_PASSWORD_HASH invalide » dans ce cas. Corriger puis `docker compose up -d` (un simple `restart` ne relit pas le fichier). |
 | Tout le monde est déconnecté après un redémarrage | `JWT_SECRET` non défini (un secret temporaire est généré à chaque démarrage) |
 | « Serveur très sollicité » ou « Trop d’exports en cours » (503) | Le serveur protège ses ressources : réessayer dans quelques secondes. Si cela arrive souvent, augmenter le CPU alloué au conteneur (`cpus` dans `docker-compose.yml`) |
+| Le site n'apparaît pas sur Google | L'indexation prend de quelques jours à quelques semaines et demande de déclarer le site dans Google Search Console (voir « Référencement »). Vérifier que `PUBLIC_URL` est bien l'adresse publique et que `/robots.txt` répond |
+| Les liens du plan du site pointent vers `localhost` ou une mauvaise adresse | `PUBLIC_URL` n'est pas défini : `docker-compose.yml` le déduit de `FESTIBAR_HOST` |
 | « Trop de tentatives » | Attendre 15 minutes. Si tous les utilisateurs sont bloqués ensemble, vérifier `TRUST_PROXY=1` (sinon, tous semblent venir de l’IP de Traefik) |
 | Heures décalées ou ventes après minuit sur le mauvais jour | Vérifier `APP_TIMEZONE` et `SERVICE_DAY_START_HOUR` |
 | Pas d’email pour les demandes d’accès | Lancer `docker compose exec festibar node scripts/test-mail.js` : il indique ce qui bloque. Vérifier aussi les indésirables. Les journaux affichent `📧 … envoyée par email` ou `❌ Erreur envoi mail` à chaque demande ; les demandes restent enregistrées en base. |

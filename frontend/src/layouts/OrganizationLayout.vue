@@ -14,6 +14,7 @@ import { useRoute } from 'vue-router'
 import NotFound from '../pages/NotFound.vue'
 import { useOrganizationStore } from '@/stores/organization'
 import { setOrgManifest, clearOrgManifest } from '@/utils/pwa'
+import { applyHead } from '@/utils/head'
 
 const route = useRoute()
 const org = useOrganizationStore()
@@ -23,7 +24,10 @@ async function load() {
   try {
     state.value = (await org.loadOrganization(route.params.orgSlug)) ? 'ok' : 'missing'
     if (state.value === 'ok') setOrgManifest(route.params.orgSlug, org.organizationName)
-    else clearOrgManifest()
+    else {
+      clearOrgManifest()
+      applyHead({ title: 'Page introuvable' }, route.path) // titre et « noindex » cohérents avec le 404 du serveur
+    }
   } catch {
     // Hors-ligne : on laisse la prise de commande fonctionner avec les données en cache
     state.value = org.organizationSlug === route.params.orgSlug ? 'ok' : 'error'

@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const routes = require('./routes');
+const withOrganization = require('./middlewares/withOrganization');
+const seo = require('./utils/seo');
 
 const app = express();
 
@@ -39,6 +41,7 @@ app.use(express.json({ limit: '100kb' }));
 // Les réponses API sont dynamiques : jamais de cache navigateur / proxy
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow'); // l'API n'a rien à faire dans un moteur de recherche
   next();
 });
 
@@ -46,21 +49,44 @@ app.use('/api', (req, res, next) => {
 app.use('/api', routes);
 app.use('/api', (req, res) => res.status(404).json({ error: 'Route inconnue' }));
 
-// Servir les fichiers statiques du frontend compilé
-app.use(express.static(path.join(__dirname, 'public'), {
+// --- Référencement ---
+// robots.txt et sitemap.xml sont générés (adresse absolue du site) ; sans cela, la SPA renverrait sa page
+// HTML à la place, ce qui trompe les robots.
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send(seo.robotsTxt(seo.siteOrigin(req)));
+});
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(seo.sitemapXml(seo.siteOrigin(req)));
+});
+// /index.html est un doublon de l'accueil
+app.get('/index.html', (req, res) => res.redirect(301, '/'));
+
+// Servir les fichiers statiques du frontend compilé (index: false : l'accueil passe par le fallback ci-dessous,
+// qui complète le <head> pour les moteurs de recherche)
+app.use(express.static(seo.PUBLIC_DIR, {
+  index: false,
   maxAge: '1h',
   setHeaders(res, filePath) {
     // Fichiers Vite empreints (nom contenant le hash) : cache longue durée
     if (filePath.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    // Le service worker et index.html ne doivent pas être mis en cache par le navigateur
-    if (filePath.endsWith('sw.js') || filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+    // Le service worker ne doit pas être mis en cache par le navigateur
+    if (filePath.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
 
-// Fallback SPA : toutes les routes non-API renvoient vers index.html
-app.get(/^\/(?!api).*/, (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Fallback SPA : toutes les routes non-API renvoient la page de l'application, avec le <head> adapté :
+// pages publiques indexables, pages privées en noindex, adresses inconnues en vrai 404.
+app.get(/^\/(?!api).*/, async (req, res, next) => {
+  try {
+    const cls = await seo.classify(req.path, withOrganization.exists);
+    if (cls.kind === 'public' && req.path !== cls.canonicalPath) return res.redirect(301, cls.canonicalPath);
+
+    res.setHeader('Cache-Control', 'no-cache');
+    if (cls.kind !== 'public') res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.status(cls.kind === 'notfound' ? 404 : 200).type('html').send(seo.renderPage(cls, seo.siteOrigin(req)));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Gestionnaire d'erreurs : JSON invalide, corps trop gros, erreurs imprévues
