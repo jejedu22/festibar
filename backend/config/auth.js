@@ -19,6 +19,10 @@ if (!jwtSecret || jwtSecret === 'change-me-in-prod') {
   console.warn('⚠️  JWT_SECRET absent ou par défaut : secret temporaire généré (sessions perdues au redémarrage).');
 }
 
+if (process.env.JWT_SECRET && process.env.JWT_SECRET !== 'change-me-in-prod' && process.env.JWT_SECRET.length < 32) {
+  console.warn('⚠️  JWT_SECRET trop court (32 caractères minimum, openssl rand -hex 32) : les sessions pourraient être falsifiées par force brute.');
+}
+
 // Empreinte bcrypt : $2a$ / $2b$ / $2y$, coût sur 2 chiffres, 53 caractères de sel + hash
 const BCRYPT_RE = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
 
@@ -73,7 +77,12 @@ const adminFingerprint = crypto
   .digest('hex')
   .slice(0, 32);
 
+// Version d'un mot de passe d'organisation, inscrite dans les jetons : changer le mot de passe invalide
+// aussitôt les sessions ouvertes avec l'ancien (un serveur remercié ne garde pas 24 h d'accès).
+const credentialVersion = hash => crypto.createHash('sha256').update(String(hash || '')).digest('hex').slice(0, 16);
+
 module.exports = {
+  credentialVersion,
   jwtSecret, passwordHash, plainPassword, adminLoginConfigured, totpSecret, adminFingerprint, TOKEN_TTL,
   ORG_TOKEN_TTL, STAFF_CANCEL_MINUTES, MIN_PASSWORD_LENGTH,
 };

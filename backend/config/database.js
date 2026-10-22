@@ -1,6 +1,8 @@
 // backend/config/database.js
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database(process.env.SQLITE_FILE || './bar.db');
+const dbFile = process.env.SQLITE_FILE || './bar.db';
+const db = new sqlite3.Database(dbFile);
+
 
 // --- Helpers promesses (utilisés par les migrations et les contrôleurs) ---
 db.runAsync = (sql, params = []) =>
@@ -28,6 +30,8 @@ async function init() {
   await db.runAsync('PRAGMA foreign_keys = ON');
   // Mode WAL → meilleur pour accès concurrents
   await db.runAsync('PRAGMA journal_mode = WAL');
+  // La base contient les empreintes des mots de passe et les demandes de contact : lisible par son propriétaire seulement
+  try { require('fs').chmodSync(dbFile, 0o600); } catch { /* système de fichiers sans droits Unix */ }
   // Cache plus grand pour réduire I/O
   await db.runAsync('PRAGMA cache_size = 10000');
   // Attend un verrou au lieu d'échouer en SQLITE_BUSY (sauvegardes, écritures concurrentes)

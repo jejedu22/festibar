@@ -9,6 +9,9 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // Slugs qui entreraient en conflit avec les routes de l'application
 const RESERVED_SLUGS = ['admin', 'api', 'login', 'assets', 'mentions-legales', 'confidentialite', 'cgu', 'legal', 'config', 'contact', 'organizations'];
 
+// bcrypt ignore tout ce qui dépasse 72 octets : un mot de passe plus long serait tronqué sans que personne le sache
+const tooLong = value => typeof value === 'string' && Buffer.byteLength(value) > 72;
+
 function validate({ name, slug, password, staff_password }, { requirePassword }) {
   if (typeof name !== 'string' || !name.trim() || name.length > 100) return 'Nom requis (100 caractères maximum)';
   if (typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.length > 60) {
@@ -21,6 +24,7 @@ function validate({ name, slug, password, staff_password }, { requirePassword })
   if (staff_password && (typeof staff_password !== 'string' || staff_password.length < MIN_PASSWORD_LENGTH)) {
     return `Mot de passe serveurs : ${MIN_PASSWORD_LENGTH} caractères minimum`;
   }
+  if (tooLong(password) || tooLong(staff_password)) return 'Mot de passe : 72 caractères au maximum';
   if (staff_password && staff_password === password) {
     return 'Les mots de passe gestionnaire et serveurs doivent être différents';
   }

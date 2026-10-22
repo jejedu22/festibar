@@ -516,7 +516,7 @@ Les routes protégées attendent l’en-tête `Authorization: Bearer <jeton>`.
 ## 🔐 Sécurité
 
 - **Mots de passe** : jamais stockés en clair (bcrypt). 8 caractères minimum pour les organisations, gestionnaire et serveurs différents.
-- **Sessions** : jetons signés (JWT), limités à une organisation et à un rôle, avec expiration.
+- **Sessions** : jetons signés (JWT), limités à une organisation et à un rôle, avec expiration. Changer le mot de passe d’un rôle (ou retirer celui des serveurs) déconnecte aussitôt les sessions ouvertes avec l’ancien : c’est le geste à faire quand un bénévole quitte l’équipe.
 - **Limitation des tentatives** :
   - connexion administrateur : 5 échecs par IP sur 15 min, et 30 échecs sur 15 min toutes IP confondues (attaque répartie) ;
   - connexion d’organisation : 10 échecs sur 15 min ;
@@ -533,7 +533,9 @@ Les routes protégées attendent l’en-tête `Authorization: Bearer <jeton>`.
 - **Bonnes pratiques d’exploitation** :
   - un `JWT_SECRET` long et secret ;
   - changer les mots de passe entre deux saisons ;
-  - ne jamais committer les fichiers `.env*`.
+  - ne jamais committer les fichiers `.env*` ;
+  - la base et les sauvegardes (`./data`) contiennent les empreintes des mots de passe et les demandes de contact : elles sont créées lisibles par leur seul propriétaire, gardez ce dossier hors de portée des autres comptes de la machine ;
+  - mettre à jour régulièrement (`git pull` puis `docker compose up -d --build`) : `npm audit --omit=dev` dans `backend/` liste les failles connues des dépendances.
 
 ### Activer la double authentification de l'administration
 

@@ -8,7 +8,9 @@ mail.logStatusAtStartup();
 
 // 3 demandes par IP et par heure
 const limiter = createLimiter({ max: 3, windowMs: 60 * 60 * 1000 });
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Caractères d'une adresse ordinaire seulement : ni guillemets, virgules, chevrons, parenthèses ni point-virgule,
+// que l'adresse de réponse de l'email envoyé à l'administrateur pourrait interpréter autrement qu'à l'écran
+const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
 
 // Durée de conservation des demandes (RGPD), en jours
 const RETENTION_DAYS = Number.parseInt(process.env.CONTACT_RETENTION_DAYS || '365', 10);

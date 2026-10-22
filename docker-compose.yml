@@ -10,6 +10,9 @@ services:
     # Serveur 2 CPU / 4 Go partagé avec les autres applications
     mem_limit: 192m
     cpus: 0.5
+    # Un processus compromis ne peut pas obtenir de privilèges supplémentaires (setuid…)
+    security_opt:
+      - no-new-privileges:true
     # Pas de port publié : l'application n'est joignable qu'à travers Traefik
     env_file:
       - path: ./backend/.env

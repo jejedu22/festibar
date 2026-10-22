@@ -35,9 +35,10 @@ function backupFile() {
 }
 
 async function backup() {
-  fs.mkdirSync(DIR, { recursive: true });
+  fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
   const file = backupFile();
   await vacuumInto(file);
+  fs.chmodSync(file, 0o600); // empreintes de mots de passe et données de contact : propriétaire seulement
 
   // Rotation : on ne garde que les KEEP plus récentes
   const files = fs.readdirSync(DIR).filter(f => NAME_RE.test(f)).sort();

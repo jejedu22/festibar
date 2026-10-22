@@ -75,7 +75,7 @@ exports.update = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   const orgId = req.organizationId;
   const { order } = req.body || {};
-  if (!Array.isArray(order) || order.some(c => !Number.isInteger(c?.id) || !Number.isInteger(c?.sort_order))) {
+  if (!Array.isArray(order) || order.length > 500 || order.some(c => !Number.isInteger(c?.id) || !Number.isInteger(c?.sort_order))) {
     return res.status(400).json({ error: 'Ordre invalide' });
   }
 

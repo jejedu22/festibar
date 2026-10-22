@@ -88,7 +88,11 @@ exports.setAvailability = async (req, res) => {
 exports.remove = async (req, res) => {
   const orgId = req.organizationId;
   try {
-    const sold = await db.getAsync(`SELECT COUNT(*) AS count FROM order_items WHERE product_id = ?`, [req.params.id]);
+    const sold = await db.getAsync(
+      `SELECT COUNT(*) AS count FROM order_items
+       WHERE product_id = ? AND product_id IN (SELECT id FROM products WHERE organization_id = ?)`,
+      [req.params.id, orgId]
+    );
     if (sold.count > 0) {
       return res.status(409).json({
         error: 'Ce produit a déjà été vendu : marquez-le plutôt comme indisponible pour conserver l’historique.',

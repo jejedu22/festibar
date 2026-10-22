@@ -1,7 +1,7 @@
 // backend/controllers/authController.js
 const db = require('../config/database');
 const jwt = require('jsonwebtoken');
-const { jwtSecret, ORG_TOKEN_TTL } = require('../config/auth');
+const { jwtSecret, ORG_TOKEN_TTL, credentialVersion } = require('../config/auth');
 const { serverError, createLimiter } = require('../utils/http');
 const { verifyPassword, sendBusy } = require('../utils/password');
 
@@ -38,7 +38,7 @@ exports.login = async (req, res) => {
     }
 
     limiter.reset(key);
-    const token = jwt.sign({ role, orgId: org.id, slug: org.slug }, jwtSecret, {
+    const token = jwt.sign({ role, orgId: org.id, slug: org.slug, cv: credentialVersion(role === 'manager' ? org.password : org.staff_password) }, jwtSecret, {
       algorithm: 'HS256',
       expiresIn: ORG_TOKEN_TTL,
     });
